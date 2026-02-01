@@ -24,89 +24,112 @@ struct TransactionFilterSheet: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Category Section (Single Select)
-                Section("Category") {
-                    ForEach([Category?.none] + Category.allCases.map { Optional($0) }, id: \.self) { category in
-                        Button {
-                            localFilters.selectedCategory = category
-                        } label: {
-                            HStack {
-                                if let cat = category {
-                                    Image(systemName: cat.icon)
-                                        .foregroundStyle(cat.color)
-                                        .frame(width: 24)
-                                    Text(cat.displayName)
-                                } else {
-                                    Text("All Categories")
-                                }
-                                Spacer()
-                                if localFilters.selectedCategory == category {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.accentColor)
-                                }
-                            }
+            filterForm
+                .navigationTitle("Filters")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Clear") {
+                            localFilters.clear()
+                            minAmountText = ""
+                            maxAmountText = ""
                         }
-                        .foregroundStyle(.primary)
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Apply") {
+                            localFilters.minAmount = Decimal(string: minAmountText)
+                            localFilters.maxAmount = Decimal(string: maxAmountText)
+                            filters = localFilters
+                            dismiss()
+                        }
+                        .fontWeight(.semibold)
                     }
                 }
-                
-                // Transaction Type Section
-                Section("Transaction Type") {
-                    Picker("Type", selection: $localFilters.transactionType) {
-                        Text("All").tag(TransactionType?.none)
-                        Text("Credit (Income)").tag(TransactionType?.some(.credit))
-                        Text("Debit (Expense)").tag(TransactionType?.some(.debit))
-                    }
-                    .pickerStyle(.segmented)
-                }
-                
-                // Has Receipt Section
-                Section("Has Receipt") {
-                    Picker("Receipt", selection: $localFilters.hasReceipt) {
-                        Text("All").tag(Bool?.none)
-                        Text("Yes").tag(Bool?.some(true))
-                        Text("No").tag(Bool?.some(false))
-                    }
-                    .pickerStyle(.segmented)
-                }
-                
-                // Amount Range Section
-                Section("Amount Range") {
-                    HStack {
-                        TextField("Min", text: $minAmountText)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.roundedBorder)
-                        Text("to")
-                            .foregroundStyle(.secondary)
-                        TextField("Max", text: $maxAmountText)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                }
-            }
-            .navigationTitle("Filters")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Clear") {
-                        localFilters.clear()
-                        minAmountText = ""
-                        maxAmountText = ""
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Apply") {
-                        localFilters.minAmount = Decimal(string: minAmountText)
-                        localFilters.maxAmount = Decimal(string: maxAmountText)
-                        filters = localFilters
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
         }
         .presentationDetents([.medium, .large])
+    }
+    
+    private var filterForm: some View {
+        Form {
+            categorySection
+            transactionTypeSection
+            hasReceiptSection
+            amountRangeSection
+        }
+    }
+    
+    private var categorySection: some View {
+        Section("Category") {
+            Button {
+                localFilters.selectedCategory = nil
+            } label: {
+                HStack {
+                    Text("All Categories")
+                    Spacer()
+                    if localFilters.selectedCategory == nil {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.accentColor)
+                    }
+                }
+            }
+            .foregroundStyle(.primary)
+            
+            ForEach(Category.allCases) { category in
+                Button {
+                    localFilters.selectedCategory = category
+                } label: {
+                    HStack {
+                        Image(systemName: category.icon)
+                            .foregroundStyle(category.color)
+                            .frame(width: 24)
+                        Text(category.displayName)
+                        Spacer()
+                        if localFilters.selectedCategory == category {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.accentColor)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        }
+    }
+    
+    private var transactionTypeSection: some View {
+        Section("Transaction Type") {
+            Picker("Type", selection: $localFilters.transactionType) {
+                Text("All").tag(TransactionType?.none)
+                Text("Credit (Income)").tag(TransactionType?.some(.credit))
+                Text("Debit (Expense)").tag(TransactionType?.some(.debit))
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+    
+    private var hasReceiptSection: some View {
+        Section("Has Receipt") {
+            Picker("Receipt", selection: $localFilters.hasReceipt) {
+                Text("All").tag(Bool?.none)
+                Text("Yes").tag(Bool?.some(true))
+                Text("No").tag(Bool?.some(false))
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+    
+    private var amountRangeSection: some View {
+        Section("Amount Range") {
+            HStack {
+                TextField("Min", text: $minAmountText)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.roundedBorder)
+                Text("to")
+                    .foregroundStyle(.secondary)
+                TextField("Max", text: $maxAmountText)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.roundedBorder)
+            }
+        }
     }
 }
 
