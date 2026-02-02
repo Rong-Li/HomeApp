@@ -47,7 +47,6 @@ struct TransactionDetailView: View {
                             showDiscardAlert = true
                         } else {
                             isEditing = false
-                            editingTransaction = nil
                         }
                     }
                 }
@@ -71,7 +70,6 @@ struct TransactionDetailView: View {
             Button("Keep Editing", role: .cancel) { }
             Button("Discard", role: .destructive) {
                 isEditing = false
-                editingTransaction = nil
             }
         }
         .alert("Delete Transaction?", isPresented: $showDeleteConfirmation) {
@@ -170,8 +168,10 @@ struct TransactionDetailView: View {
         
         do {
             try await viewModel.saveTransaction(updated)
+            // Only set isEditing = false; don't nil out editingTransaction
+            // Setting editingTransaction = nil causes a crash because SwiftUI's
+            // Binding force-unwrapping tries to access it during view update
             isEditing = false
-            editingTransaction = nil
             onUpdate?()
         } catch {
             viewModel.error = "Failed to save changes"
