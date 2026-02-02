@@ -51,10 +51,11 @@ struct TransactionFilterSheet: View {
     
     private var filterForm: some View {
         Form {
-            categorySection
             transactionTypeSection
             hasReceiptSection
+            recurringPaymentSection
             amountRangeSection
+            categorySection
         }
     }
     
@@ -68,7 +69,7 @@ struct TransactionFilterSheet: View {
                     Spacer()
                     if localFilters.selectedCategory == nil {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(.accentColor)
+                            .foregroundStyle(.tint)
                     }
                 }
             }
@@ -86,7 +87,7 @@ struct TransactionFilterSheet: View {
                         Spacer()
                         if localFilters.selectedCategory == category {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.accentColor)
+                                .foregroundStyle(.tint)
                         }
                     }
                 }
@@ -109,6 +110,17 @@ struct TransactionFilterSheet: View {
     private var hasReceiptSection: some View {
         Section("Has Receipt") {
             Picker("Receipt", selection: $localFilters.hasReceipt) {
+                Text("All").tag(Bool?.none)
+                Text("Yes").tag(Bool?.some(true))
+                Text("No").tag(Bool?.some(false))
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+    
+    private var recurringPaymentSection: some View {
+        Section("Recurring Payment") {
+            Picker("Recurring", selection: $localFilters.recurringPayment) {
                 Text("All").tag(Bool?.none)
                 Text("Yes").tag(Bool?.some(true))
                 Text("No").tag(Bool?.some(false))

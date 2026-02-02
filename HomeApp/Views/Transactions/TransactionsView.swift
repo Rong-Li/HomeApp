@@ -36,12 +36,6 @@ struct TransactionsView: View {
                 }
             }
             .navigationTitle("Transactions")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    filterButton
-                }
-            }
-            .searchable(text: $viewModel.searchText, prompt: "Search transactions")
             .refreshable {
                 await viewModel.refresh()
             }
@@ -57,17 +51,39 @@ struct TransactionsView: View {
         .task {
             await viewModel.loadTransactions()
         }
+        .onChange(of: viewModel.selectedTimeRange) {
+            Task { await viewModel.loadTransactions() }
+        }
     }
     
     private var mainContent: some View {
         VStack(spacing: 0) {
-            // Time Range Picker
+            // Search bar & Filter - top row
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    TextField("Search", text: $viewModel.searchText)
+                        .font(.subheadline)
+                        .textFieldStyle(.plain)
+                }
+                .padding(8)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                
+                filterButton
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            // Time Range Picker - own row
             HStack {
                 TimeRangePickerView(selectedRange: $viewModel.selectedTimeRange)
                 Spacer()
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.bottom, 8)
             
             // Active Filters
             if !viewModel.filters.isEmpty {
@@ -132,15 +148,19 @@ struct TransactionsView: View {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .font(.title3)
+                    .frame(width: 36, height: 36)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 
                 if !viewModel.filters.isEmpty {
                     Circle()
                         .fill(Color.accentColor)
                         .frame(width: 8, height: 8)
-                        .offset(x: 2, y: -2)
+                        .offset(x: 4, y: -4)
                 }
             }
         }
+        .buttonStyle(.plain)
     }
 }
 

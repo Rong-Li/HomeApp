@@ -30,9 +30,6 @@ class TransactionsViewModel {
     var filteredTransactions: [Transaction] {
         var result = allTransactions
         
-        // Time range filter
-        result = result.filter { $0.createdAt >= selectedTimeRange.startDate }
-        
         // Category filter (single select)
         if let category = filters.selectedCategory {
             result = result.filter { $0.category == category }
@@ -46,6 +43,11 @@ class TransactionsViewModel {
         // Has receipt filter
         if let hasReceipt = filters.hasReceipt {
             result = result.filter { $0.hasReceipt == hasReceipt }
+        }
+        
+        // Recurring payment filter
+        if let recurring = filters.recurringPayment {
+            result = result.filter { $0.recurringPayment == recurring }
         }
         
         // Amount range filter
@@ -92,7 +94,9 @@ class TransactionsViewModel {
         displayedCount = 30
         
         do {
-            allTransactions = try await apiService.fetchTransactions()
+            let startDate = selectedTimeRange.startDate
+            let endDate = Date()
+            allTransactions = try await apiService.fetchTransactions(startDate: startDate, endDate: endDate)
         } catch {
             self.error = error as? APIError ?? .unknown
         }

@@ -11,11 +11,12 @@ struct TransactionFilters: Equatable {
     var selectedCategory: Category?  // Single select
     var transactionType: TransactionType?
     var hasReceipt: Bool?
+    var recurringPayment: Bool?
     var minAmount: Decimal?
     var maxAmount: Decimal?
     
     var isEmpty: Bool {
-        selectedCategory == nil && transactionType == nil && hasReceipt == nil && minAmount == nil && maxAmount == nil
+        selectedCategory == nil && transactionType == nil && hasReceipt == nil && recurringPayment == nil && minAmount == nil && maxAmount == nil
     }
     
     var activeCount: Int {
@@ -23,6 +24,7 @@ struct TransactionFilters: Equatable {
         if selectedCategory != nil { count += 1 }
         if transactionType != nil { count += 1 }
         if hasReceipt != nil { count += 1 }
+        if recurringPayment != nil { count += 1 }
         if minAmount != nil || maxAmount != nil { count += 1 }
         return count
     }
@@ -31,6 +33,7 @@ struct TransactionFilters: Equatable {
         selectedCategory = nil
         transactionType = nil
         hasReceipt = nil
+        recurringPayment = nil
         minAmount = nil
         maxAmount = nil
     }

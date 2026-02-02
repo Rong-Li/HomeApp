@@ -13,9 +13,11 @@ struct ExpenseCreate: Encodable {
     let transactionType: TransactionType
     let merchant: String?
     let description: String?
+    let recurringPayment: Bool?
     
     enum CodingKeys: String, CodingKey {
         case amount, category, merchant, description
         case transactionType = "transaction_type"
+        case recurringPayment = "recurring_payment"
     }
 }

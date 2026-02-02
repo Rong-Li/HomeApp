@@ -96,12 +96,24 @@ struct TransactionEditForm: View {
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...6)
             }
+            
+            // Recurring Payment Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recurring Payment")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Toggle("Recurring", isOn: Binding(
+                    get: { transaction.recurringPayment ?? false },
+                    set: { transaction.recurringPayment = $0 }
+                ))
+            }
         }
     }
 }
 
 #Preview {
-    TransactionEditForm(transaction: .constant(Transaction(
+    TransactionEditForm(transaction: .constant(    Transaction(
         id: "1",
         amount: 85.50,
         category: .groceries,
@@ -109,7 +121,8 @@ struct TransactionEditForm: View {
         createdAt: Date(),
         merchant: "Costco",
         description: nil,
-        receiptId: nil
+        receiptId: nil,
+        recurringPayment: nil
     )))
     .padding()
 }

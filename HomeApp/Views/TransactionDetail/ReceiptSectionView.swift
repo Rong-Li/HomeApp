@@ -188,7 +188,8 @@ struct ReceiptFilePicker: UIViewControllerRepresentable {
             createdAt: Date(),
             merchant: "Costco",
             description: nil,
-            receiptId: nil
+            receiptId: nil,
+            recurringPayment: nil
         )
     ))
     .padding()

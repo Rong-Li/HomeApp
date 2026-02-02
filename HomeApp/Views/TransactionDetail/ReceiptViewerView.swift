@@ -114,7 +114,8 @@ struct PDFViewer: UIViewRepresentable {
             createdAt: Date(),
             merchant: "Costco",
             description: nil,
-            receiptId: "abc123"
+            receiptId: "abc123",
+            recurringPayment: nil
         )
     ))
 }

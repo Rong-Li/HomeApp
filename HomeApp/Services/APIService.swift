@@ -8,6 +8,27 @@
 import Foundation
 
 actor APIService {
+    private func logRequest(_ method: String, _ urlString: String) {
+        #if DEBUG
+        print("[API] \(method) \(urlString)")
+        #endif
+    }
+    
+    private func logResponse(_ response: URLResponse, data: Data) {
+        #if DEBUG
+        if let http = response as? HTTPURLResponse {
+            print("[API] RESPONSE \(http.statusCode) \(http.url?.absoluteString ?? "")")
+            print("[API] HEADERS: \(http.allHeaderFields)")
+        }
+        if let bodyString = String(data: data, encoding: .utf8) {
+            let preview = bodyString.prefix(2_000)
+            print("[API] BODY: \(preview)")
+        } else {
+            print("[API] BODY: <non-UTF8 \(data.count) bytes>")
+        }
+        #endif
+    }
+    
     static let shared = APIService()
     
     private let baseURL = "https://tzy15xk1hg.execute-api.ca-central-1.amazonaws.com"
@@ -16,7 +37,28 @@ actor APIService {
     
     init() {
         decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        
+        // Custom date decoder for API format: "2026-01-31T17:21:28.791000"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        let dateFormatterNoFraction = DateFormatter()
+        dateFormatterNoFraction.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        dateFormatterNoFraction.timeZone = TimeZone(identifier: "UTC")
+        
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            if let date = dateFormatter.date(from: dateString) {
+                return date
+            } else if let date = dateFormatterNoFraction.date(from: dateString) {
+                return date
+            } else {
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
+            }
+        }
         
         encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -24,12 +66,28 @@ actor APIService {
     
     // MARK: - Fetch Transactions
     
-    func fetchTransactions() async throws -> [Transaction] {
-        guard let url = URL(string: "\(baseURL)/expenses") else {
+    func fetchTransactions(startDate: Date, endDate: Date) async throws -> [Transaction] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        let startDateString = dateFormatter.string(from: startDate)
+        let endDateString = dateFormatter.string(from: endDate)
+        
+        var components = URLComponents(string: "\(baseURL)/expense")
+        components?.queryItems = [
+            URLQueryItem(name: "start_date", value: startDateString),
+            URLQueryItem(name: "end_date", value: endDateString)
+        ]
+        
+        guard let urlString = components?.string, let url = components?.url else {
             throw APIError.invalidURL
         }
         
+        logRequest("GET", urlString)
+        
         let (data, response) = try await URLSession.shared.data(from: url)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -40,10 +98,11 @@ actor APIService {
         }
         
         do {
-            let result = try decoder.decode(TransactionsResponse.self, from: data)
-            return result.expenses
+            return try decoder.decode([Transaction].self, from: data)
         } catch {
-            print("Decoding error: \(error)")
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
             throw APIError.decodingError
         }
     }
@@ -51,7 +110,9 @@ actor APIService {
     // MARK: - Create Expense
     
     func createExpense(_ expense: ExpenseCreate) async throws -> ExpenseCreateResponse {
-        guard let url = URL(string: "\(baseURL)/expense") else {
+        let urlString = "\(baseURL)/expense"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
@@ -61,6 +122,7 @@ actor APIService {
         request.httpBody = try encoder.encode(expense)
         
         let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -76,7 +138,9 @@ actor APIService {
     // MARK: - Update Transaction
     
     func updateTransaction(_ transaction: Transaction) async throws {
-        guard let url = URL(string: "\(baseURL)/expense/\(transaction.id)") else {
+        let urlString = "\(baseURL)/expense/\(transaction.id)"
+        logRequest("PUT", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
@@ -89,7 +153,8 @@ actor APIService {
         updateEncoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try updateEncoder.encode(transaction)
         
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -103,14 +168,17 @@ actor APIService {
     // MARK: - Delete Transaction
     
     func deleteTransaction(id: String) async throws {
-        guard let url = URL(string: "\(baseURL)/expense/\(id)") else {
+        let urlString = "\(baseURL)/expense/\(id)"
+        logRequest("DELETE", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
@@ -134,7 +202,9 @@ actor APIService {
     }
     
     func getReceiptUploadUrl(transactionId: String, filename: String, contentType: String) async throws -> String {
-        guard let url = URL(string: "\(baseURL)/expense/\(transactionId)/receipt/upload-url") else {
+        let urlString = "\(baseURL)/expense/\(transactionId)/receipt/upload-url"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
@@ -146,6 +216,7 @@ actor APIService {
         request.httpBody = try JSONEncoder().encode(body)
         
         let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -157,6 +228,7 @@ actor APIService {
     }
     
     func uploadToS3(url: String, data: Data, contentType: String) async throws {
+        logRequest("PUT", url)
         guard let uploadUrl = URL(string: url) else {
             throw APIError.invalidURL
         }
@@ -166,7 +238,8 @@ actor APIService {
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = data
         
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (respData, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: respData)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -185,7 +258,9 @@ actor APIService {
     }
     
     func confirmReceiptUpload(transactionId: String, filename: String) async throws -> String {
-        guard let url = URL(string: "\(baseURL)/expense/\(transactionId)/receipt/confirm") else {
+        let urlString = "\(baseURL)/expense/\(transactionId)/receipt/confirm"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
@@ -197,6 +272,7 @@ actor APIService {
         request.httpBody = try JSONEncoder().encode(body)
         
         let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -222,11 +298,14 @@ actor APIService {
     }
     
     func getReceiptViewUrl(transactionId: String) async throws -> ViewUrlResponse {
-        guard let url = URL(string: "\(baseURL)/expense/\(transactionId)/receipt/view-url") else {
+        let urlString = "\(baseURL)/expense/\(transactionId)/receipt/view-url"
+        logRequest("GET", urlString)
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         
         let (data, response) = try await URLSession.shared.data(from: url)
+        logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -236,3 +315,4 @@ actor APIService {
         return try decoder.decode(ViewUrlResponse.self, from: data)
     }
 }
+

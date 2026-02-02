@@ -26,6 +26,10 @@ struct ActiveFilterChipsView: View {
                     FilterChip(label: hasReceipt ? "Has Receipt" : "No Receipt")
                 }
                 
+                if let recurring = filters.recurringPayment {
+                    FilterChip(label: recurring ? "Recurring" : "One-time")
+                }
+                
                 if filters.minAmount != nil || filters.maxAmount != nil {
                     let minStr = filters.minAmount.map { "$\($0)" } ?? ""
                     let maxStr = filters.maxAmount.map { "$\($0)" } ?? ""

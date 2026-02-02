@@ -128,6 +128,11 @@ struct TransactionDetailView: View {
                         Divider()
                         DetailRow(label: "Description", value: description)
                     }
+                    
+                    if let recurring = viewModel.transaction.recurringPayment {
+                        Divider()
+                        DetailRow(label: "Recurring", value: recurring ? "Yes" : "No")
+                    }
                 }
             }
         }
@@ -217,7 +222,8 @@ struct DetailRow: View {
                 createdAt: Date(),
                 merchant: "Costco",
                 description: "Weekly groceries",
-                receiptId: nil
+                receiptId: nil,
+                recurringPayment: nil
             )
         )
     }

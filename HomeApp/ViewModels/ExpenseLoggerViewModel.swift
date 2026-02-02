@@ -86,7 +86,8 @@ class ExpenseLoggerViewModel {
                 category: selectedCategory,
                 transactionType: transactionType,
                 merchant: merchant.isEmpty ? nil : merchant,
-                description: note.isEmpty ? nil : note
+                description: note.isEmpty ? nil : note,
+                recurringPayment: nil
             )
             
             _ = try await APIService.shared.createExpense(expense)
