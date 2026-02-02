@@ -62,6 +62,17 @@ actor APIService {
         
         encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
+        
+        // Custom date encoder to match API format: "2026-01-31T17:21:28.791000"
+        let dateEncoderFormatter = DateFormatter()
+        dateEncoderFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        dateEncoderFormatter.timeZone = TimeZone(identifier: "UTC")
+        
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            let dateString = dateEncoderFormatter.string(from: date)
+            try container.encode(dateString)
+        }
     }
     
     // MARK: - Fetch Transactions
