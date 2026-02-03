@@ -10,12 +10,168 @@ import SwiftUI
 
 struct LogExpenseIntent: AppIntent {
     static var title: LocalizedStringResource = "Log Expense"
-    static var description = IntentDescription("Quickly log a new expense")
+    static var description = IntentDescription("Quickly log a new expense with category, amount, and type")
     static var openAppWhenRun: Bool = false
     
-    @MainActor
-    func perform() async throws -> some IntentResult & ShowsSnippetView {
-        return .result(view: ExpenseLoggerSnippetView())
+    // MARK: - Parameters
+    
+    @Parameter(
+        title: "Category",
+        description: "Select expense category",
+        requestValueDialog: "Which category?"
+    )
+    var category: CategoryEntity
+    
+    @Parameter(
+        title: "Amount",
+        description: "The expense amount",
+        requestValueDialog: "What's the amount?"
+    )
+    var amount: Double
+    
+    @Parameter(
+        title: "Type",
+        description: "Transaction type",
+        default: .debit
+    )
+    var transactionType: TransactionTypeEntity
+    
+    @Parameter(title: "Merchant", description: "Merchant name (optional)")
+    var merchant: String?
+    
+    @Parameter(title: "Note", description: "Additional note (optional)")
+    var note: String?
+    
+    // MARK: - Parameter Summary
+    
+    static var parameterSummary: some ParameterSummary {
+        Summary("Log \(\.$category) \(\.$transactionType) of \(\.$amount)") {
+            \.$merchant
+            \.$note
+        }
+    }
+    
+    // MARK: - Perform
+    
+    func perform() async throws -> some IntentResult & ShowsSnippetView & ProvidesDialog {
+        // Validate inputs - this ensures the system prompts for missing values
+        guard amount > 0 else {
+            throw $amount.needsValueError("What amount would you like to log?")
+        }
+        
+        // Create expense
+        let expense = ExpenseCreate(
+            amount: Decimal(amount),
+            category: category.toCategory(),
+            transactionType: transactionType.toTransactionType(),
+            merchant: merchant?.isEmpty == false ? merchant : nil,
+            description: note?.isEmpty == false ? note : nil,
+            recurringPayment: nil
+        )
+        
+        do {
+            _ = try await APIService.shared.createExpense(expense)
+            
+            let formattedAmount = NumberFormatter.currency.string(from: NSDecimalNumber(decimal: Decimal(amount))) ?? "$\(amount)"
+            let sign = transactionType.toTransactionType() == .debit ? "-" : "+"
+            let message = "\(category.displayName) \(sign)\(formattedAmount)"
+            
+            return .result(
+                dialog: "Logged \(message)",
+                view: ExpenseLoggerSnippetView(message: message)
+            )
+        } catch {
+            throw IntentError.message("Failed to save expense. Please try again.")
+        }
+    }
+}
+
+// MARK: - Category Entity
+
+enum CategoryEntity: String, AppEnum {
+    case groceries = "Groceries"
+    case eatOut = "EatOut"
+    case transportation = "Transportation"
+    case mortgage = "Mortgage"
+    case utilities = "Utilities"
+    case shopping = "Shopping"
+    case gas = "Gas"
+    case insurance = "Insurance"
+    
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Category")
+    static var caseDisplayRepresentations: [CategoryEntity: DisplayRepresentation] = [
+        .groceries: DisplayRepresentation(title: "Groceries", image: DisplayRepresentation.Image(systemName: "cart.fill")),
+        .eatOut: DisplayRepresentation(title: "Eat Out", image: DisplayRepresentation.Image(systemName: "fork.knife")),
+        .transportation: DisplayRepresentation(title: "Transportation", image: DisplayRepresentation.Image(systemName: "car.fill")),
+        .mortgage: DisplayRepresentation(title: "Mortgage", image: DisplayRepresentation.Image(systemName: "house.fill")),
+        .utilities: DisplayRepresentation(title: "Utilities", image: DisplayRepresentation.Image(systemName: "bolt.fill")),
+        .shopping: DisplayRepresentation(title: "Shopping", image: DisplayRepresentation.Image(systemName: "bag.fill")),
+        .gas: DisplayRepresentation(title: "Gas", image: DisplayRepresentation.Image(systemName: "fuelpump.fill")),
+        .insurance: DisplayRepresentation(title: "Insurance", image: DisplayRepresentation.Image(systemName: "shield.fill"))
+    ]
+    
+    var displayName: String {
+        switch self {
+        case .eatOut: return "Eat Out"
+        default: return rawValue
+        }
+    }
+    
+    func toCategory() -> Category {
+        switch self {
+        case .groceries: return .groceries
+        case .eatOut: return .eatOut
+        case .transportation: return .transportation
+        case .mortgage: return .mortgage
+        case .utilities: return .utilities
+        case .shopping: return .shopping
+        case .gas: return .gas
+        case .insurance: return .insurance
+        }
+    }
+}
+
+// MARK: - Transaction Type Entity
+
+enum TransactionTypeEntity: String, AppEnum {
+    case debit = "Expense"
+    case credit = "Income"
+    
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Type")
+    static var caseDisplayRepresentations: [TransactionTypeEntity: DisplayRepresentation] = [
+        .debit: DisplayRepresentation(title: "Expense", image: DisplayRepresentation.Image(systemName: "minus.circle.fill")),
+        .credit: DisplayRepresentation(title: "Income", image: DisplayRepresentation.Image(systemName: "plus.circle.fill"))
+    ]
+    
+    func toTransactionType() -> TransactionType {
+        switch self {
+        case .debit: return .debit
+        case .credit: return .credit
+        }
+    }
+}
+
+// MARK: - Number Formatter Extension
+
+private extension NumberFormatter {
+    static let currency: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "CAD"
+        return formatter
+    }()
+}
+
+// MARK: - Intent Error
+
+enum IntentError: Error, CustomLocalizedStringResourceConvertible {
+    case message(String)
+    
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .message(let message):
+            return LocalizedStringResource(stringLiteral: message)
+        }
     }
 }
 
@@ -34,161 +190,4 @@ struct HomeAppShortcuts: AppShortcutsProvider {
             systemImageName: "plus.circle.fill"
         )
     }
-}
-
-// MARK: - Snippet View for Action Button
-
-struct ExpenseLoggerSnippetView: View {
-    @State private var viewModel = ExpenseLoggerViewModel()
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            if viewModel.showSuccess {
-                compactSuccessView
-            } else {
-                compactFormView
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.25), value: viewModel.showSuccess)
-    }
-    
-    private var compactSuccessView: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.15))
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: "checkmark")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.green)
-            }
-            
-            VStack(spacing: 2) {
-                Text(viewModel.successMessage)
-                    .font(.subheadline.bold())
-                Text("logged!")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(height: 150)
-    }
-    
-    private var compactFormView: some View {
-        VStack(spacing: 8) {
-            // Header
-            Text("Log Expense")
-                .font(.headline)
-            
-            // Amount (compact)
-            Text(viewModel.formattedAmount)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-            
-            // Type toggle (compact)
-            Picker("Type", selection: $viewModel.transactionType) {
-                Text("Debit").tag(TransactionType.debit)
-                Text("Credit").tag(TransactionType.credit)
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 140)
-            
-            // Category picker (compact)
-            Picker("Category", selection: $viewModel.selectedCategory) {
-                ForEach(Category.allCases) { category in
-                    HStack {
-                        Image(systemName: category.icon)
-                            .foregroundStyle(category.color)
-                        Text(category.displayName)
-                    }
-                    .tag(category)
-                }
-            }
-            .pickerStyle(.wheel)
-            .frame(height: 80)
-            
-            // Optional fields (compact)
-            HStack(spacing: 4) {
-                TextField("Merchant", text: $viewModel.merchant)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.caption)
-                TextField("Note", text: $viewModel.note)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.caption)
-            }
-            
-            // Keypad and submit (compact)
-            HStack(alignment: .bottom, spacing: 6) {
-                // Compact keypad
-                VStack(spacing: 3) {
-                    ForEach(0..<4, id: \.self) { row in
-                        HStack(spacing: 3) {
-                            ForEach(0..<3, id: \.self) { col in
-                                compactKeyButton(row: row, col: col)
-                            }
-                        }
-                    }
-                }
-                
-                // Submit button
-                Button {
-                    Task { await viewModel.submit() }
-                } label: {
-                    VStack(spacing: 2) {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20))
-                            Text("Log")
-                                .font(.caption2.bold())
-                        }
-                    }
-                    .frame(width: 44, height: 70)
-                    .background(viewModel.isAmountValid ? Color.accentColor : Color.gray)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .disabled(!viewModel.isAmountValid || viewModel.isSubmitting)
-            }
-            
-            if let error = viewModel.error {
-                Text(error)
-                    .font(.caption2)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-    
-    private func compactKeyButton(row: Int, col: Int) -> some View {
-        let keys = [
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            [".", "0", "⌫"]
-        ]
-        let key = keys[row][col]
-        
-        return Button {
-            if key == "⌫" {
-                viewModel.deleteLastDigit()
-            } else {
-                viewModel.appendDigit(key)
-            }
-        } label: {
-            Text(key)
-                .font(.system(size: 14, weight: .medium))
-                .frame(width: 38, height: 30)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-#Preview {
-    ExpenseLoggerSnippetView()
 }
