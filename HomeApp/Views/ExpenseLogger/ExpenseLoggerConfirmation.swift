@@ -1,15 +1,15 @@
 //
-//  ExpenseLoggerSnippetView.swift
+//  ExpenseLoggerConfirmation.swift
 //  HomeApp
 //
-//  Family Expense Tracker - Action Button Snippet View
-//  Displays confirmation after expense is logged via parameters
+//  Family Expense Tracker - Action Button Confirmation View
+//  Displays confirmation after expense is logged
 //
 
 import SwiftUI
 
-/// Confirmation snippet view shown after successfully logging an expense
-struct ExpenseLoggerSnippetView: View {
+/// Confirmation view shown after successfully logging an expense
+struct ExpenseLoggerConfirmation: View {
     var message: String = "Expense logged successfully"
     
     var body: some View {
@@ -53,9 +53,9 @@ struct ExpenseLoggerSnippetView: View {
 }
 
 #Preview("Success - Expense") {
-    ExpenseLoggerSnippetView(message: "Groceries -$42.50")
+    ExpenseLoggerConfirmation(message: "Groceries -$42.50")
 }
 
 #Preview("Success - Income") {
-    ExpenseLoggerSnippetView(message: "Salary +$3,500.00")
+    ExpenseLoggerConfirmation(message: "Salary +$3,500.00")
 }

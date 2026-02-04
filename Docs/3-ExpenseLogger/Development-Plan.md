@@ -37,14 +37,16 @@ Implementation plan for the Expense Logger—single-view form for both Action Bu
 
 ## Phase 4: Action Button Integration
 
-### 4.1 App Intent
-- `Intents/LogExpenseIntent.swift` - LogExpenseIntent with perform() returning ShowsSnippetView
+### 4.1 App Intent (Parameter-Based)
+- `Intents/LogExpenseIntent.swift` - LogExpenseIntent with **@Parameter** properties for category, amount, type
+- System handles prompts for each parameter via `requestValueDialog`
+- Returns `ShowsSnippetView & ProvidesDialog` with confirmation
 
 ### 4.2 App Shortcuts
 - HomeAppShortcuts - Register "Log Expense" shortcut for Action Button
 
-### 4.3 Snippet View
-- `ExpenseLoggerSnippetView` - Compact version of form for Action Button overlay; same fields in condensed layout
+### 4.3 Confirmation View
+- `ExpenseLoggerConfirmation` - Success confirmation view shown after expense is logged via system prompts
 
 ---
 
@@ -75,7 +77,7 @@ Implementation plan for the Expense Logger—single-view form for both Action Bu
 ### Phase 4: Action Button
 - [ ] LogExpenseIntent
 - [ ] HomeAppShortcuts
-- [ ] ExpenseLoggerSnippetView
+- [ ] ExpenseLoggerConfirmation
 
 ### Phase 5: API
 - [ ] createExpense in APIService

@@ -255,22 +255,41 @@ Content-Type: application/json
 
 ### App Intents Implementation
 
-For Action Button support:
+For Action Button support, we use a **parameter-based AppIntent** that leverages the system's built-in prompts for data collection:
 
 ```swift
 import AppIntents
 
 struct LogExpenseIntent: AppIntent {
     static var title: LocalizedStringResource = "Log Expense"
-    static var description = IntentDescription("Quickly log a new expense")
+    static var description = IntentDescription("Quickly log a new expense with category, amount, and type")
     static var openAppWhenRun: Bool = false
     
-    @MainActor
-    func perform() async throws -> some IntentResult & ShowsSnippetView {
-        return .result(view: ExpenseLoggerSnippetView())
+    @Parameter(title: "Category", requestValueDialog: "Which category?")
+    var category: CategoryEntity
+    
+    @Parameter(title: "Amount", requestValueDialog: "What's the amount?")
+    var amount: Double
+    
+    @Parameter(title: "Type", default: .debit)
+    var transactionType: TransactionTypeEntity
+    
+    func perform() async throws -> some IntentResult & ShowsSnippetView & ProvidesDialog {
+        // Create and save expense via API
+        // ...
+        return .result(
+            dialog: "Logged Groceries -$25.00",
+            view: ExpenseLoggerConfirmation(message: "Groceries -$25.00")
+        )
     }
 }
 ```
+
+**Flow:**
+1. User triggers Action Button → System prompts for **Category** selection
+2. System prompts for **Amount** input
+3. System uses default **Debit** type (or prompts if needed)
+4. Intent performs API call and shows **ExpenseLoggerConfirmation** view
 
 ### Error Handling
 

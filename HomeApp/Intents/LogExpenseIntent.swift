@@ -78,7 +78,7 @@ struct LogExpenseIntent: AppIntent {
             
             return .result(
                 dialog: "Logged \(message)",
-                view: ExpenseLoggerSnippetView(message: message)
+                view: ExpenseLoggerConfirmation(message: message)
             )
         } catch {
             throw IntentError.message("Failed to save expense. Please try again.")
