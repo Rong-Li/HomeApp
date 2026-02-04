@@ -100,14 +100,14 @@ enum CategoryEntity: String, AppEnum {
     
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Category")
     static var caseDisplayRepresentations: [CategoryEntity: DisplayRepresentation] = [
-        .groceries: DisplayRepresentation(title: "Groceries", image: DisplayRepresentation.Image(systemName: "cart.fill")),
-        .eatOut: DisplayRepresentation(title: "Eat Out", image: DisplayRepresentation.Image(systemName: "fork.knife")),
-        .transportation: DisplayRepresentation(title: "Transportation", image: DisplayRepresentation.Image(systemName: "car.fill")),
-        .mortgage: DisplayRepresentation(title: "Mortgage", image: DisplayRepresentation.Image(systemName: "house.fill")),
-        .utilities: DisplayRepresentation(title: "Utilities", image: DisplayRepresentation.Image(systemName: "bolt.fill")),
-        .shopping: DisplayRepresentation(title: "Shopping", image: DisplayRepresentation.Image(systemName: "bag.fill")),
-        .gas: DisplayRepresentation(title: "Gas", image: DisplayRepresentation.Image(systemName: "fuelpump.fill")),
-        .insurance: DisplayRepresentation(title: "Insurance", image: DisplayRepresentation.Image(systemName: "shield.fill"))
+        .groceries: "🛒  Groceries",
+        .eatOut: "🍽️  Eat Out",
+        .transportation: "🚗  Transportation",
+        .mortgage: "🏠  Mortgage",
+        .utilities: "⚡  Utilities",
+        .shopping: "🛍️  Shopping",
+        .gas: "⛽  Gas",
+        .insurance: "🛡️  Insurance"
     ]
     
     var displayName: String {
@@ -139,8 +139,8 @@ enum TransactionTypeEntity: String, AppEnum {
     
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Type")
     static var caseDisplayRepresentations: [TransactionTypeEntity: DisplayRepresentation] = [
-        .debit: DisplayRepresentation(title: "Expense", image: DisplayRepresentation.Image(systemName: "minus.circle.fill")),
-        .credit: DisplayRepresentation(title: "Income", image: DisplayRepresentation.Image(systemName: "plus.circle.fill"))
+        .debit: "💸  Expense",
+        .credit: "💰  Income"
     ]
     
     func toTransactionType() -> TransactionType {
