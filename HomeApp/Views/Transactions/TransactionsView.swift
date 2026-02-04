@@ -59,18 +59,19 @@ struct TransactionsView: View {
     private var mainContent: some View {
         VStack(spacing: 0) {
             // Search bar & Filter - top row
-            HStack(spacing: 8) {
-                HStack(spacing: 6) {
+            HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.tertiary)
                     TextField("Search", text: $viewModel.searchText)
-                        .font(.subheadline)
+                        .font(.system(size: 15, design: .rounded))
                         .textFieldStyle(.plain)
                 }
-                .padding(8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
                 .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 
                 filterButton
             }
@@ -147,10 +148,10 @@ struct TransactionsView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.title3)
-                    .frame(width: 36, height: 36)
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: 40, height: 40)
                     .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 
                 if !viewModel.filters.isEmpty {
                     Circle()

@@ -19,14 +19,38 @@ struct FloatingActionButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Circle().fill(isDisabled ? Color.gray : Color.accentColor))
-                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                .frame(width: 60, height: 60)
+                .background(
+                    Circle()
+                        .fill(
+                            isDisabled
+                                ? AnyShapeStyle(Color.gray)
+                                : AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                )
+                .shadow(color: isDisabled ? .clear : Color.accentColor.opacity(0.4), radius: 8, y: 4)
+                .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
         }
+        .buttonStyle(ScaleButtonStyle())
         .disabled(isDisabled)
         .sensoryFeedback(.impact(weight: .medium), trigger: isDisabled)
+    }
+}
+
+// Custom button style for press animation
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

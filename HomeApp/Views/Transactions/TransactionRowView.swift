@@ -11,36 +11,45 @@ struct TransactionRowView: View {
     let transaction: Transaction
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Category Icon
+        HStack(spacing: 14) {
+            // Category Icon with gradient background
             Image(systemName: transaction.category.icon)
-                .font(.title2)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(transaction.category.color)
-                .frame(width: 40, height: 40)
-                .background(transaction.category.color.opacity(0.15))
+                .frame(width: 44, height: 44)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            transaction.category.color.opacity(0.2),
+                            transaction.category.color.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .clipShape(Circle())
             
             // Category, Merchant & Date
             VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.category.displayName)
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
                 
                 if let subtitle = transaction.displaySubtitle {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 
                 HStack(spacing: 4) {
                     Text(transaction.formattedDateTime)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.tertiary)
                     
                     if transaction.hasReceipt {
                         Image(systemName: "paperclip")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }
@@ -49,10 +58,10 @@ struct TransactionRowView: View {
             
             // Amount
             Text(transaction.formattedAmount)
-                .font(.headline)
-                .foregroundStyle(transaction.isCredit ? .green : .red)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(transaction.isCredit ? .green : .primary)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
 }

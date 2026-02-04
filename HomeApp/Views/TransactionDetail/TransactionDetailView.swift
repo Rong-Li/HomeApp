@@ -85,21 +85,37 @@ struct TransactionDetailView: View {
     // MARK: - Header Section
     
     private var headerSection: some View {
-        VStack(spacing: 12) {
-            Image(systemName: viewModel.transaction.category.icon)
-                .font(.system(size: 48))
-                .foregroundStyle(viewModel.transaction.category.color)
+        VStack(spacing: 16) {
+            // Icon with gradient background
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                viewModel.transaction.category.color.opacity(0.25),
+                                viewModel.transaction.category.color.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: viewModel.transaction.category.icon)
+                    .font(.system(size: 36, weight: .semibold))
+                    .foregroundStyle(viewModel.transaction.category.color)
+            }
             
             Text(viewModel.transaction.formattedAmount)
-                .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(viewModel.transaction.isCredit ? .green : .red)
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .foregroundStyle(viewModel.transaction.isCredit ? .green : .primary)
             
             Text(viewModel.transaction.category.displayName)
-                .font(.headline)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
+        .padding(.vertical, 24)
     }
     
     // MARK: - Details Section

@@ -44,18 +44,19 @@ struct NumericKeypadView: View {
                 switch key {
                 case .digit(let value):
                     Text(value)
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .font(.system(size: 24, weight: .medium, design: .rounded))
                 case .delete:
                     Image(systemName: "delete.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: 20, weight: .medium))
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 48)
+            .frame(height: 52)
             .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
         .sensoryFeedback(.impact(weight: .light), trigger: key.id)
     }
 }
