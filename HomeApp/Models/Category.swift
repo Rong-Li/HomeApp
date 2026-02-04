@@ -51,4 +51,17 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .insurance: return .teal
         }
     }
+    
+    var emoji: String {
+        switch self {
+        case .groceries: return "🛒"
+        case .eatOut: return "🍽️"
+        case .transportation: return "🚗"
+        case .mortgage: return "🏠"
+        case .utilities: return "⚡"
+        case .shopping: return "🛍️"
+        case .gas: return "⛽"
+        case .insurance: return "🛡️"
+        }
+    }
 }
