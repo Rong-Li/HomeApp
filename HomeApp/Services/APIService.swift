@@ -35,6 +35,16 @@ actor APIService {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     
+    // MARK: - Authentication
+    
+    private var bearerToken: String {
+        AppConfig.apiBearerToken
+    }
+    
+    private var authHeader: [String: String] {
+        ["Authorization": "Bearer \(bearerToken)"]
+    }
+    
     init() {
         decoder = JSONDecoder()
         
@@ -97,7 +107,12 @@ actor APIService {
         
         logRequest("GET", urlString)
         
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
         logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -130,6 +145,9 @@ actor APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         request.httpBody = try encoder.encode(expense)
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -158,6 +176,9 @@ actor APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         
         let updateEncoder = JSONEncoder()
         updateEncoder.dateEncodingStrategy = .iso8601
@@ -187,6 +208,9 @@ actor APIService {
         
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         
         let (data, response) = try await URLSession.shared.data(for: request)
         logResponse(response, data: data)
@@ -222,6 +246,9 @@ actor APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         
         let body = ["filename": filename, "content_type": contentType]
         request.httpBody = try JSONEncoder().encode(body)
@@ -278,6 +305,9 @@ actor APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         
         let body = ["filename": filename]
         request.httpBody = try JSONEncoder().encode(body)
@@ -315,7 +345,12 @@ actor APIService {
             throw APIError.invalidURL
         }
         
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
         logResponse(response, data: data)
         
         guard let httpResponse = response as? HTTPURLResponse,

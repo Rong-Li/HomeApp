@@ -29,3 +29,6 @@ Pods/
 # IntelliJ / AppCode
 .idea/
 *.iml
+
+# Local configuration (contains secrets)
+Config.xcconfig
