@@ -16,6 +16,7 @@ class ExpenseLoggerViewModel {
     var selectedCategory: Category = .groceries
     var merchant: String = ""
     var note: String = ""
+    var selectedDate: Date = Date()
     
     // UI state
     var isSubmitting: Bool = false
@@ -85,6 +86,7 @@ class ExpenseLoggerViewModel {
                 amount: amount,
                 category: selectedCategory,
                 transactionType: transactionType,
+                createdAt: selectedDate,
                 merchant: merchant.isEmpty ? nil : merchant,
                 description: note.isEmpty ? nil : note,
                 recurringPayment: nil
@@ -110,6 +112,7 @@ class ExpenseLoggerViewModel {
         selectedCategory = .groceries
         merchant = ""
         note = ""
+        selectedDate = Date()
         isSubmitting = false
         showSuccess = false
         error = nil

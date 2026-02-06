@@ -37,12 +37,8 @@ actor APIService {
     
     // MARK: - Authentication
     
-    private var bearerToken: String {
-        AppConfig.apiBearerToken
-    }
-    
     private var authHeader: [String: String] {
-        ["Authorization": "Bearer \(bearerToken)"]
+        ["Authorization": "Bearer \(Secrets.apiBearerToken)"]
     }
     
     init() {

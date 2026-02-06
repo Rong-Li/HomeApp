@@ -23,11 +23,12 @@ struct ExpenseCreate: Encodable {
         case recurringPayment = "recurring_payment"
     }
     
-    /// Creates an expense with the current timestamp in Toronto timezone
+    /// Creates an expense with custom or current timestamp
     init(
         amount: Decimal,
         category: Category,
         transactionType: TransactionType,
+        createdAt: Date = Date(),
         merchant: String? = nil,
         description: String? = nil,
         recurringPayment: Bool? = nil
@@ -35,11 +36,9 @@ struct ExpenseCreate: Encodable {
         self.amount = amount
         self.category = category
         self.transactionType = transactionType
+        self.createdAt = createdAt
         self.merchant = merchant
         self.description = description
         self.recurringPayment = recurringPayment
-        
-        // Set current timestamp in Toronto timezone
-        self.createdAt = Date()
     }
 }

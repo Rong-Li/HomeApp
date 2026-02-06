@@ -31,4 +31,4 @@ Pods/
 *.iml
 
 # Local configuration (contains secrets)
-Config.xcconfig
+HomeApp/Config/Secrets.swift
