@@ -22,8 +22,8 @@ struct ActiveFilterChipsView: View {
                     FilterChip(label: type.displayName)
                 }
                 
-                if let hasReceipt = filters.hasReceipt {
-                    FilterChip(label: hasReceipt ? "Has Receipt" : "No Receipt")
+                if let currency = filters.selectedCurrency {
+                    FilterChip(label: "\(currency.flag) \(currency.rawValue)")
                 }
                 
                 if let recurring = filters.recurringPayment {

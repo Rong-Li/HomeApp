@@ -40,9 +40,9 @@ class TransactionsViewModel {
             result = result.filter { $0.transactionType == type }
         }
         
-        // Has receipt filter
-        if let hasReceipt = filters.hasReceipt {
-            result = result.filter { $0.hasReceipt == hasReceipt }
+        // Currency filter
+        if let currency = filters.selectedCurrency {
+            result = result.filter { $0.currency == currency }
         }
         
         // Recurring payment filter

@@ -45,12 +45,6 @@ struct TransactionRowView: View {
                     Text(transaction.formattedDateTime)
                         .font(.system(size: 12, design: .rounded))
                         .foregroundStyle(.tertiary)
-                    
-                    if transaction.hasReceipt {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
-                    }
                 }
             }
             
@@ -77,7 +71,6 @@ struct TransactionRowView: View {
             createdAt: Date(),
             merchant: "Costco",
             description: nil,
-            receiptId: "abc",
             recurringPayment: nil
         ))
         
@@ -90,7 +83,6 @@ struct TransactionRowView: View {
             createdAt: Date(),
             merchant: nil,
             description: nil,
-            receiptId: nil,
             recurringPayment: nil
         ))
     }

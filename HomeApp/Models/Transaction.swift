@@ -16,16 +16,12 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
     var createdAt: Date
     var merchant: String?
     var description: String?
-    var receiptId: String?
     var recurringPayment: Bool?
     
     var isCredit: Bool {
         transactionType == .credit
     }
     
-    var hasReceipt: Bool {
-        receiptId != nil
-    }
     
     var displaySubtitle: String? {
         merchant ?? description
@@ -56,7 +52,6 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
         case id, amount, category, merchant, description, currency
         case transactionType = "transaction_type"
         case createdAt = "created_at"
-        case receiptId = "receipt_id"
         case recurringPayment = "recurring_payment"
     }
 }

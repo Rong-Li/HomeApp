@@ -52,10 +52,22 @@ struct TransactionFilterSheet: View {
     private var filterForm: some View {
         Form {
             transactionTypeSection
-            hasReceiptSection
+            currencySection
             recurringPaymentSection
             amountRangeSection
             categorySection
+        }
+    }
+    
+    private var currencySection: some View {
+        Section("Currency") {
+            Picker("Currency", selection: $localFilters.selectedCurrency) {
+                Text("All").tag(Currency?.none)
+                ForEach(Currency.allCases, id: \.self) { currency in
+                    Text("\(currency.flag) \(currency.rawValue)").tag(Currency?.some(currency))
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
     
@@ -107,16 +119,6 @@ struct TransactionFilterSheet: View {
         }
     }
     
-    private var hasReceiptSection: some View {
-        Section("Has Receipt") {
-            Picker("Receipt", selection: $localFilters.hasReceipt) {
-                Text("All").tag(Bool?.none)
-                Text("Yes").tag(Bool?.some(true))
-                Text("No").tag(Bool?.some(false))
-            }
-            .pickerStyle(.segmented)
-        }
-    }
     
     private var recurringPaymentSection: some View {
         Section("Recurring Payment") {

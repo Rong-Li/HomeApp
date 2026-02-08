@@ -30,7 +30,6 @@ struct TransactionDetailView: View {
                 } else {
                     headerSection
                     detailsSection
-                    receiptSection
                     deleteSection
                 }
             }
@@ -152,11 +151,6 @@ struct TransactionDetailView: View {
         }
     }
     
-    // MARK: - Receipt Section
-    
-    private var receiptSection: some View {
-        ReceiptSectionView(viewModel: viewModel)
-    }
     
     // MARK: - Delete Section
     
@@ -239,7 +233,6 @@ struct DetailRow: View {
                 createdAt: Date(),
                 merchant: "Costco",
                 description: "Weekly groceries",
-                receiptId: nil,
                 recurringPayment: nil
             )
         )
