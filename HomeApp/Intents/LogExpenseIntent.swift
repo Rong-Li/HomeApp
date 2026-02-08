@@ -39,15 +39,18 @@ struct LogExpenseIntent: AppIntent {
     @Parameter(title: "Merchant", description: "Merchant name (optional)")
     var merchant: String?
     
-    @Parameter(title: "Note", description: "Additional note (optional)")
+    @Parameter(
+        title: "Note",
+        description: "Additional note (optional)",
+        requestValueDialog: "Add a note?"
+    )
     var note: String?
     
     // MARK: - Parameter Summary
     
     static var parameterSummary: some ParameterSummary {
-        Summary("Log \(\.$category) \(\.$transactionType) of \(\.$amount)") {
+        Summary("Log \(\.$category) \(\.$transactionType) of \(\.$amount): \(\.$note)") {
             \.$merchant
-            \.$note
         }
     }
     
@@ -57,6 +60,11 @@ struct LogExpenseIntent: AppIntent {
         // Validate inputs - this ensures the system prompts for missing values
         guard amount > 0 else {
             throw $amount.needsValueError("What amount would you like to log?")
+        }
+        
+        // Prompt for note if not provided
+        if note == nil {
+            note = try? await $note.requestValue("Add a note?")
         }
         
         // Create expense
