@@ -1,5 +1,7 @@
 # macOS
 .DS_Store
+*.swp
+*~
 
 # Xcode
 build/
@@ -14,21 +16,40 @@ build/
 xcuserdata/
 *.xccheckout
 *.moved-aside
-DerivedData
+DerivedData/
 *.hmap
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.xcscmblueprint
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
 # Swift Package Manager
 .build/
+Package.resolved
 
 # CocoaPods
 Pods/
+Podfile.lock
 
 # IntelliJ / AppCode
 .idea/
 *.iml
 
+# Cursor / VS Code
+.cursor/
+.vscode/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+
 # Local configuration (contains secrets)
 HomeApp/Config/Secrets.swift
+*.xcconfig
+!HomeApp/Config/Config.xcconfig.template
+
+# Crash logs
+*.crash

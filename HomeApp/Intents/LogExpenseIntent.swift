@@ -67,6 +67,9 @@ struct LogExpenseIntent: AppIntent {
             note = try? await $note.requestValue("Add a note?")
         }
         
+        // Fetch postal code (non-blocking, nil if unavailable)
+        let postalCode = await LocationService.shared.fetchPostalCode()
+        
         // Create expense
         let expense = ExpenseCreate(
             amount: Decimal(amount),
@@ -75,7 +78,8 @@ struct LogExpenseIntent: AppIntent {
             currency: .cad,
             merchant: merchant?.isEmpty == false ? merchant : nil,
             description: note?.isEmpty == false ? note : nil,
-            recurringPayment: nil
+            recurringPayment: nil,
+            postalCode: postalCode
         )
         
         do {

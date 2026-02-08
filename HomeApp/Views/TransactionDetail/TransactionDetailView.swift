@@ -151,7 +151,6 @@ struct TransactionDetailView: View {
         }
     }
     
-    
     // MARK: - Delete Section
     
     private var deleteSection: some View {
@@ -233,7 +232,8 @@ struct DetailRow: View {
                 createdAt: Date(),
                 merchant: "Costco",
                 description: "Weekly groceries",
-                recurringPayment: nil
+                recurringPayment: nil,
+                postalCode: nil
             )
         )
     }

@@ -136,7 +136,8 @@ struct TransactionEditForm: View {
         createdAt: Date(),
         merchant: "Costco",
         description: nil,
-        recurringPayment: nil
+        recurringPayment: nil,
+        postalCode: nil
     )))
     .padding()
 }

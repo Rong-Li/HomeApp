@@ -39,12 +39,14 @@ struct ExpenseCreate: Encodable {
     let merchant: String?
     let description: String?
     let recurringPayment: Bool?
+    let postalCode: String?
     
     enum CodingKeys: String, CodingKey {
         case amount, category, merchant, description, currency
         case transactionType = "transaction_type"
         case createdAt = "created_at"
         case recurringPayment = "recurring_payment"
+        case postalCode = "postal_code"
     }
     
     /// Creates an expense with custom or current timestamp
@@ -56,7 +58,8 @@ struct ExpenseCreate: Encodable {
         createdAt: Date = Date(),
         merchant: String? = nil,
         description: String? = nil,
-        recurringPayment: Bool? = nil
+        recurringPayment: Bool? = nil,
+        postalCode: String? = nil
     ) {
         self.amount = amount
         self.category = category
@@ -66,6 +69,7 @@ struct ExpenseCreate: Encodable {
         self.merchant = merchant
         self.description = description
         self.recurringPayment = recurringPayment
+        self.postalCode = postalCode
     }
 }
 

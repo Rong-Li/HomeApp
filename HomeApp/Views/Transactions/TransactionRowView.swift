@@ -71,7 +71,8 @@ struct TransactionRowView: View {
             createdAt: Date(),
             merchant: "Costco",
             description: nil,
-            recurringPayment: nil
+            recurringPayment: nil,
+            postalCode: nil
         ))
         
         TransactionRowView(transaction: Transaction(
@@ -83,7 +84,8 @@ struct TransactionRowView: View {
             createdAt: Date(),
             merchant: nil,
             description: nil,
-            recurringPayment: nil
+            recurringPayment: nil,
+            postalCode: nil
         ))
     }
 }

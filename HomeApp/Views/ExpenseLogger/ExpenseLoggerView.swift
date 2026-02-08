@@ -61,6 +61,9 @@ struct ExpenseLoggerView: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(viewModel.isSubmitting)
+        .onAppear {
+            viewModel.requestLocationPermission()
+        }
     }
     
     private var formContent: some View {

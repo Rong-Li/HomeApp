@@ -44,10 +44,6 @@ class ExpenseLoggerViewModel {
         return formatter.string(from: amount as NSDecimalNumber) ?? "\(selectedCurrency.symbol)0.00"
     }
     
-    var submitButtonTitle: String {
-        transactionType == .debit ? "Log Expense" : "Log Income"
-    }
-    
     var successMessage: String {
         let prefix = transactionType == .debit ? "-" : "+"
         return "\(selectedCategory.displayName) \(prefix)\(formattedAmount)"
@@ -55,25 +51,8 @@ class ExpenseLoggerViewModel {
     
     // MARK: - Actions
     
-    func appendDigit(_ digit: String) {
-        // Handle decimal places (max 2)
-        if digit == "." && amountString.contains(".") { return }
-        if let dotIndex = amountString.firstIndex(of: ".") {
-            let decimals = amountString.distance(from: dotIndex, to: amountString.endIndex) - 1
-            if decimals >= 2 && digit != "." { return }
-        }
-        // Prevent leading zeros (except for "0.")
-        if amountString == "0" && digit != "." {
-            amountString = digit
-            return
-        }
-        amountString += digit
-    }
-    
-    func deleteLastDigit() {
-        if !amountString.isEmpty {
-            amountString.removeLast()
-        }
+    func requestLocationPermission() {
+        LocationService.shared.requestPermission()
     }
     
     func submit() async {
@@ -83,6 +62,9 @@ class ExpenseLoggerViewModel {
         error = nil
         
         do {
+            // Fetch postal code (non-blocking, nil if unavailable)
+            let postalCode = await LocationService.shared.fetchPostalCode()
+            
             let expense = ExpenseCreate(
                 amount: amount,
                 category: selectedCategory,
@@ -91,7 +73,8 @@ class ExpenseLoggerViewModel {
                 createdAt: selectedDate,
                 merchant: merchant.isEmpty ? nil : merchant,
                 description: note.isEmpty ? nil : note,
-                recurringPayment: nil
+                recurringPayment: nil,
+                postalCode: postalCode
             )
             
             _ = try await APIService.shared.createExpense(expense)
