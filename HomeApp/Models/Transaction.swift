@@ -12,6 +12,7 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
     var amount: Decimal
     var category: Category
     var transactionType: TransactionType
+    var currency: Currency
     var createdAt: Date
     var merchant: String?
     var description: String?
@@ -33,9 +34,9 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
     var formattedAmount: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = "CAD"
+        formatter.currencyCode = currency.rawValue
         let prefix = isCredit ? "+" : "-"
-        return prefix + (formatter.string(from: amount as NSDecimalNumber) ?? "$0.00")
+        return prefix + (formatter.string(from: amount as NSDecimalNumber) ?? "\(currency.symbol)0.00")
     }
     
     var formattedDateTime: String {
@@ -52,7 +53,7 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, amount, category, merchant, description
+        case id, amount, category, merchant, description, currency
         case transactionType = "transaction_type"
         case createdAt = "created_at"
         case receiptId = "receipt_id"

@@ -235,6 +235,7 @@ struct DetailRow: View {
                 amount: 85.50,
                 category: .groceries,
                 transactionType: .debit,
+                currency: .cad,
                 createdAt: Date(),
                 merchant: "Costco",
                 description: "Weekly groceries",
@@ -244,3 +245,4 @@ struct DetailRow: View {
         )
     }
 }
+

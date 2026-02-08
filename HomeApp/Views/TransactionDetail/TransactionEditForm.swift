@@ -18,10 +18,24 @@ struct TransactionEditForm: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
-                TextField("Amount", value: $transaction.amount, format: .currency(code: "CAD"))
+                TextField("Amount", value: $transaction.amount, format: .currency(code: transaction.currency.rawValue))
                     .keyboardType(.decimalPad)
                     .textFieldStyle(.roundedBorder)
                     .font(.title2)
+            }
+            
+            // Currency Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Currency")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Picker("Currency", selection: $transaction.currency) {
+                    ForEach(Currency.allCases, id: \.self) { currency in
+                        Text("\(currency.flag) \(currency.rawValue)").tag(currency)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
             
             // Category Section
@@ -113,11 +127,12 @@ struct TransactionEditForm: View {
 }
 
 #Preview {
-    TransactionEditForm(transaction: .constant(    Transaction(
+    TransactionEditForm(transaction: .constant(Transaction(
         id: "1",
         amount: 85.50,
         category: .groceries,
         transactionType: .debit,
+        currency: .cad,
         createdAt: Date(),
         merchant: "Costco",
         description: nil,

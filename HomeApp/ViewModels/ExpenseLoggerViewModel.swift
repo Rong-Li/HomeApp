@@ -14,6 +14,7 @@ class ExpenseLoggerViewModel {
     var amountString: String = ""
     var transactionType: TransactionType = .debit
     var selectedCategory: Category = .groceries
+    var selectedCurrency: Currency = .cad
     var merchant: String = ""
     var note: String = ""
     var selectedDate: Date = Date()
@@ -35,12 +36,12 @@ class ExpenseLoggerViewModel {
     
     var formattedAmount: String {
         guard let amount = amount else {
-            return "$0.00"
+            return "\(selectedCurrency.symbol)0.00"
         }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = "CAD"
-        return formatter.string(from: amount as NSDecimalNumber) ?? "$0.00"
+        formatter.currencyCode = selectedCurrency.rawValue
+        return formatter.string(from: amount as NSDecimalNumber) ?? "\(selectedCurrency.symbol)0.00"
     }
     
     var submitButtonTitle: String {
@@ -86,6 +87,7 @@ class ExpenseLoggerViewModel {
                 amount: amount,
                 category: selectedCategory,
                 transactionType: transactionType,
+                currency: selectedCurrency,
                 createdAt: selectedDate,
                 merchant: merchant.isEmpty ? nil : merchant,
                 description: note.isEmpty ? nil : note,
@@ -110,6 +112,7 @@ class ExpenseLoggerViewModel {
         amountString = ""
         transactionType = .debit
         selectedCategory = .groceries
+        selectedCurrency = .cad
         merchant = ""
         note = ""
         selectedDate = Date()

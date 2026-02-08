@@ -69,7 +69,7 @@ struct ExpenseLoggerView: View {
             HStack(spacing: 16) {
                 // Amount input
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text("$")
+                    Text(viewModel.selectedCurrency.symbol)
                         .font(.system(size: 24, weight: .light, design: .rounded))
                         .foregroundStyle(.secondary)
                     
@@ -80,6 +80,16 @@ struct ExpenseLoggerView: View {
                         .minimumScaleFactor(0.5)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Currency toggle
+                Button {
+                    viewModel.selectedCurrency = viewModel.selectedCurrency == .cad ? .rmb : .cad
+                } label: {
+                    Text(viewModel.selectedCurrency.flag)
+                        .font(.title2)
+                }
+                .buttonStyle(.bordered)
+                .sensoryFeedback(.selection, trigger: viewModel.selectedCurrency)
                 
                 // Type toggle (compact)
                 Picker("Type", selection: $viewModel.transactionType) {

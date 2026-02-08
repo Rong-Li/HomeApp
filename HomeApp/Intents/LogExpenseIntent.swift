@@ -72,6 +72,7 @@ struct LogExpenseIntent: AppIntent {
             amount: Decimal(amount),
             category: category.toCategory(),
             transactionType: transactionType.toTransactionType(),
+            currency: .cad,
             merchant: merchant?.isEmpty == false ? merchant : nil,
             description: note?.isEmpty == false ? note : nil,
             recurringPayment: nil
