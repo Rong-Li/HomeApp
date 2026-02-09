@@ -44,7 +44,7 @@ actor APIService {
     init() {
         decoder = JSONDecoder()
         
-        // Custom date decoder for API format: "2026-01-31T17:21:28.791000"
+        // Date formatters for various API formats
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
@@ -53,11 +53,24 @@ actor APIService {
         dateFormatterNoFraction.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         dateFormatterNoFraction.timeZone = TimeZone(identifier: "UTC")
         
+        // ISO8601 with Z suffix: "2026-02-08T23:16:58.201000Z"
+        let iso8601Formatter = DateFormatter()
+        iso8601Formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
+        iso8601Formatter.timeZone = TimeZone(identifier: "UTC")
+        
+        let iso8601FormatterNoFraction = DateFormatter()
+        iso8601FormatterNoFraction.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        iso8601FormatterNoFraction.timeZone = TimeZone(identifier: "UTC")
+        
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
             
-            if let date = dateFormatter.date(from: dateString) {
+            if let date = iso8601Formatter.date(from: dateString) {
+                return date
+            } else if let date = iso8601FormatterNoFraction.date(from: dateString) {
+                return date
+            } else if let date = dateFormatter.date(from: dateString) {
                 return date
             } else if let date = dateFormatterNoFraction.date(from: dateString) {
                 return date
@@ -69,10 +82,12 @@ actor APIService {
         encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         
-        // Custom date encoder to match API format: "2026-01-31T17:21:28.791000"
+        // Custom date encoder: ISO8601 with timezone offset
+        // Sends Toronto local time, API converts to UTC
+        // Example: "2026-01-31T12:21:28.791000-05:00"
         let dateEncoderFormatter = DateFormatter()
-        dateEncoderFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
-        dateEncoderFormatter.timeZone = TimeZone(identifier: "UTC")
+        dateEncoderFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+        dateEncoderFormatter.timeZone = TimeZone(identifier: "America/Toronto")
         
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()

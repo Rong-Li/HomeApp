@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct TransactionDetailView: View {
     @State private var viewModel: TransactionDetailViewModel
@@ -29,6 +30,9 @@ struct TransactionDetailView: View {
                     TransactionEditForm(transaction: binding)
                 } else {
                     headerSection
+                    if viewModel.transaction.postalCode != nil {
+                        locationSection
+                    }
                     detailsSection
                     deleteSection
                 }
@@ -148,6 +152,21 @@ struct TransactionDetailView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Location Section
+    
+    private var locationSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("LOCATION")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 8)
+            
+            PostalCodeMapView(postalCode: viewModel.transaction.postalCode ?? "")
+                .frame(height: 150)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
     

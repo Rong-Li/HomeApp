@@ -38,6 +38,7 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
     var formattedDateTime: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM dd, h:mm a"
+        formatter.timeZone = TimeZone(identifier: "America/Toronto")
         return formatter.string(from: createdAt)
     }
     
@@ -45,6 +46,7 @@ struct Transaction: Identifiable, Codable, Equatable, Hashable {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
         formatter.timeStyle = .short
+        formatter.timeZone = TimeZone(identifier: "America/Toronto")
         return formatter.string(from: createdAt)
     }
     
