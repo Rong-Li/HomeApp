@@ -88,105 +88,100 @@ struct TransactionDetailView: View {
     // MARK: - Header Section
     
     private var headerSection: some View {
-        VStack(spacing: 16) {
-            // Icon with gradient background
+        VStack(spacing: 12) {
+            // Icon with modern gradient and shadow
             ZStack {
                 Circle()
                     .fill(
                         LinearGradient(
                             colors: [
-                                viewModel.transaction.category.color.opacity(0.25),
-                                viewModel.transaction.category.color.opacity(0.1)
+                                viewModel.transaction.category.color.opacity(0.2),
+                                viewModel.transaction.category.color.opacity(0.05)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 80, height: 80)
+                    .frame(width: 72, height: 72)
+                    .shadow(color: viewModel.transaction.category.color.opacity(0.2), radius: 12, y: 4)
                 
                 Image(systemName: viewModel.transaction.category.icon)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 32, weight: .medium))
                     .foregroundStyle(viewModel.transaction.category.color)
             }
             
             Text(viewModel.transaction.formattedAmount)
-                .font(.system(size: 38, weight: .bold, design: .rounded))
-                .foregroundStyle(viewModel.transaction.isCredit ? .green : .primary)
-            
-            Text(viewModel.transaction.category.displayName)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .foregroundStyle(viewModel.transaction.isCredit ? Color(red: 0.2, green: 0.8, blue: 0.4) : .primary)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 20)
     }
     
     // MARK: - Details Section
     
     private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("DETAILS")
-                .font(.caption)
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 8)
+                .tracking(0.5)
             
-            GroupBox {
-                VStack(spacing: 0) {
-                    DetailRow(label: "Type", value: viewModel.transaction.transactionType.displayName)
-                    Divider()
-                    DetailRow(label: "Date", value: viewModel.formattedFullDateTime)
-                    
-                    if let merchant = viewModel.transaction.merchant {
-                        Divider()
-                        DetailRow(label: "Merchant", value: merchant)
-                    }
-                    
-                    if let description = viewModel.transaction.description {
-                        Divider()
-                        DetailRow(label: "Description", value: description)
-                    }
-                    
-                    if let recurring = viewModel.transaction.recurringPayment {
-                        Divider()
-                        DetailRow(label: "Recurring", value: recurring ? "Yes" : "No")
-                    }
+            VStack(spacing: 0) {
+                DetailRow(label: "Category", value: viewModel.transaction.category.displayName, icon: "tag.fill")
+                DetailRow(label: "Date", value: viewModel.formattedFullDateTime, icon: "calendar")
+                
+                if let merchant = viewModel.transaction.merchant {
+                    DetailRow(label: "Merchant", value: merchant, icon: "storefront.fill")
+                }
+                
+                if let description = viewModel.transaction.description {
+                    DetailRow(label: "Note", value: description, icon: "text.alignleft")
+                }
+                
+                if let recurring = viewModel.transaction.recurringPayment, recurring {
+                    DetailRow(label: "Recurring", value: "Yes", icon: "repeat")
                 }
             }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         }
     }
     
     // MARK: - Location Section
     
     private var locationSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("LOCATION")
-                .font(.caption)
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 8)
+                .tracking(0.5)
             
             PostalCodeMapView(postalCode: viewModel.transaction.postalCode ?? "")
-                .frame(height: 150)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
         }
     }
     
     // MARK: - Delete Section
     
     private var deleteSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button(role: .destructive) {
-                showDeleteConfirmation = true
-            } label: {
-                HStack {
-                    Image(systemName: "trash")
-                    Text("Delete Transaction")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
+        Button(role: .destructive) {
+            showDeleteConfirmation = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .medium))
+                Text("Delete Transaction")
+                    .font(.system(size: 15, weight: .medium))
             }
-            .buttonStyle(.bordered)
-            .tint(.red)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
         }
+        .foregroundStyle(.red)
+        .padding(.top, 8)
     }
     
     // MARK: - Actions
@@ -227,15 +222,30 @@ struct TransactionDetailView: View {
 struct DetailRow: View {
     let label: String
     let value: String
+    var icon: String? = nil
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+            }
+            
             Text(label)
+                .font(.system(size: 15))
                 .foregroundStyle(.secondary)
+            
             Spacer()
+            
             Text(value)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.trailing)
         }
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }
 
