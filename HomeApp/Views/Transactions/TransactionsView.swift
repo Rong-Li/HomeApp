@@ -14,7 +14,6 @@ struct TransactionsView: View {
     @State private var showFilters = false
     @State private var scheduleViewModel = PaymentScheduleViewModel()
     @State private var showScheduleSnippet = false
-    @State private var showScheduleManagement = false
     
     var body: some View {
         NavigationStack {
@@ -51,15 +50,9 @@ struct TransactionsView: View {
                 TransactionFilterSheet(filters: $viewModel.filters)
             }
             .sheet(isPresented: $showScheduleSnippet) {
-                PaymentScheduleSnippetView(
-                    schedules: scheduleViewModel.schedules,
-                    onManage: { showScheduleManagement = true }
-                )
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-            }
-            .fullScreenCover(isPresented: $showScheduleManagement) {
-                PaymentScheduleListView(viewModel: scheduleViewModel)
+                PaymentScheduleSnippetView(viewModel: scheduleViewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
         }
         .task {

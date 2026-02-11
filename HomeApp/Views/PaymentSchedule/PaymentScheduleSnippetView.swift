@@ -8,12 +8,14 @@
 import SwiftUI
 
 struct PaymentScheduleSnippetView: View {
-    let schedules: [PaymentSchedule]
-    let onManage: () -> Void
+    @Bindable var viewModel: PaymentScheduleViewModel
     @Environment(\.dismiss) private var dismiss
     
+    @State private var showAddForm = false
+    @State private var scheduleToEdit: PaymentSchedule?
+    
     private var totalMonthly: Decimal {
-        schedules.reduce(Decimal.zero) { total, schedule in
+        viewModel.schedules.reduce(Decimal.zero) { total, schedule in
             let multiplier: Decimal
             switch schedule.frequency {
             case .weekly: multiplier = 4
@@ -34,67 +36,53 @@ struct PaymentScheduleSnippetView: View {
                     .padding(.top, 8)
                 
                 // Schedule list
-                if schedules.isEmpty {
+                if viewModel.isLoading && viewModel.schedules.isEmpty {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                } else if viewModel.schedules.isEmpty {
                     Spacer()
                     EmptyStateView(
                         icon: "calendar.badge.plus",
                         title: "No Schedules",
-                        subtitle: "Add your first payment schedule"
+                        subtitle: "Tap + to create your first schedule"
                     )
                     Spacer()
                 } else {
                     List {
-                        ForEach(schedules.prefix(5)) { schedule in
-                            PaymentScheduleRowView(schedule: schedule)
-                        }
-                        
-                        if schedules.count > 5 {
-                            HStack {
-                                Spacer()
-                                Text("+\(schedules.count - 5) more")
-                                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                                Spacer()
+                        ForEach(viewModel.schedules) { schedule in
+                            Button {
+                                scheduleToEdit = schedule
+                            } label: {
+                                PaymentScheduleRowView(schedule: schedule)
                             }
-                            .listRowSeparator(.hidden)
+                            .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        _ = await viewModel.deleteSchedule(id: schedule.id)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .listStyle(.plain)
                 }
-                
-                // Manage button
-                Button {
-                    dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        onManage()
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("Manage All")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 16)
             }
             .navigationTitle("Scheduled Payments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showAddForm = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -102,6 +90,12 @@ struct PaymentScheduleSnippetView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+            .sheet(isPresented: $showAddForm) {
+                PaymentScheduleFormView(viewModel: viewModel)
+            }
+            .sheet(item: $scheduleToEdit) { schedule in
+                PaymentScheduleFormView(viewModel: viewModel, schedule: schedule)
             }
         }
     }
@@ -122,10 +116,10 @@ struct PaymentScheduleSnippetView: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(schedules.count)")
+                Text("\(viewModel.schedules.count)")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.accentColor)
-                Text(schedules.count == 1 ? "Schedule" : "Schedules")
+                Text(viewModel.schedules.count == 1 ? "Schedule" : "Schedules")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             }
