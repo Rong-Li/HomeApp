@@ -66,43 +66,61 @@ struct TransactionsView: View {
     
     private var mainContent: some View {
         VStack(spacing: 0) {
-            // Search bar & Filter - top row
-            HStack(spacing: 10) {
-                HStack(spacing: 8) {
+            // Control header
+            VStack(spacing: 10) {
+                // Search bar - full width
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.quaternary)
                     TextField("Search", text: $viewModel.searchText)
-                        .font(.system(size: 15, design: .rounded))
+                        .font(.system(size: 14, design: .rounded))
                         .textFieldStyle(.plain)
+                    
+                    if !viewModel.searchText.isEmpty {
+                        Button {
+                            viewModel.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.quaternary)
+                        }
+                    }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color(.tertiarySystemFill).opacity(0.8))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 
-                filterButton
+                // Controls row: Time Range | Filter | Schedules
+                HStack(spacing: 8) {
+                    // Time range selector
+                    TimeRangePickerView(selectedRange: $viewModel.selectedTimeRange)
+                    
+                    // Filter button
+                    filterButton
+                    
+                    Spacer()
+                    
+                    // Schedule pill
+                    schedulePill
+                }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            
-            // Time Range Picker + Schedule Pill
-            HStack(spacing: 10) {
-                TimeRangePickerView(selectedRange: $viewModel.selectedTimeRange)
-                
-                Spacer()
-                
-                schedulePill
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 12)
+            .background(
+                Color(.systemBackground)
+                    .shadow(.drop(color: .black.opacity(0.04), radius: 4, y: 2))
+            )
             
             // Active Filters
             if !viewModel.filters.isEmpty {
                 ActiveFilterChipsView(filters: viewModel.filters) {
                     viewModel.filters.clear()
                 }
-                .padding(.bottom, 8)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
             }
             
             // Content
@@ -157,20 +175,28 @@ struct TransactionsView: View {
         Button {
             showFilters = true
         } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 40, height: 40)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            HStack(spacing: 5) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("Filters")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                 
                 if !viewModel.filters.isEmpty {
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 8, height: 8)
-                        .offset(x: 4, y: -4)
+                    Text("\(viewModel.filters.activeCount)")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.accentColor))
                 }
             }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(Color(.tertiarySystemFill))
+            )
         }
         .buttonStyle(.plain)
     }
@@ -179,28 +205,26 @@ struct TransactionsView: View {
         Button {
             showScheduleSnippet = true
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                 
-                if scheduleViewModel.schedules.isEmpty {
-                    Text("Schedules")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                } else {
-                    Text("\(scheduleViewModel.schedules.count)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                }
+                Text(scheduleViewModel.schedules.isEmpty ? "Schedules" : "\(scheduleViewModel.schedules.count)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
             }
-            .foregroundStyle(Color.accentColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
             .background(
                 Capsule()
-                    .fill(Color.accentColor.opacity(0.12))
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
+                    .shadow(color: Color.accentColor.opacity(0.3), radius: 4, y: 2)
             )
         }
         .buttonStyle(ScaleButtonStyle())

@@ -25,17 +25,22 @@ struct TimeRangePickerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 12, weight: .semibold))
                 Text(selectedRange.displayName)
-                    .font(.subheadline.weight(.medium))
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.tertiary)
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(Capsule())
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(Color(.tertiarySystemFill))
+            )
         }
     }
 }
