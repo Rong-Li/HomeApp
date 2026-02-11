@@ -12,6 +12,9 @@ struct TransactionsView: View {
     @State private var networkMonitor = NetworkMonitor.shared
     @State private var showExpenseLogger = false
     @State private var showFilters = false
+    @State private var scheduleViewModel = PaymentScheduleViewModel()
+    @State private var showScheduleSnippet = false
+    @State private var showScheduleManagement = false
     
     var body: some View {
         NavigationStack {
@@ -47,9 +50,21 @@ struct TransactionsView: View {
             .sheet(isPresented: $showFilters) {
                 TransactionFilterSheet(filters: $viewModel.filters)
             }
+            .sheet(isPresented: $showScheduleSnippet) {
+                PaymentScheduleSnippetView(
+                    schedules: scheduleViewModel.schedules,
+                    onManage: { showScheduleManagement = true }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+            .fullScreenCover(isPresented: $showScheduleManagement) {
+                PaymentScheduleListView(viewModel: scheduleViewModel)
+            }
         }
         .task {
             await viewModel.loadTransactions()
+            await scheduleViewModel.loadSchedules()
         }
         .onChange(of: viewModel.selectedTimeRange) {
             Task { await viewModel.loadTransactions() }
@@ -78,10 +93,13 @@ struct TransactionsView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
             
-            // Time Range Picker - own row
-            HStack {
+            // Time Range Picker + Schedule Pill
+            HStack(spacing: 10) {
                 TimeRangePickerView(selectedRange: $viewModel.selectedTimeRange)
+                
                 Spacer()
+                
+                schedulePill
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
@@ -162,6 +180,37 @@ struct TransactionsView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+    
+    private var schedulePill: some View {
+        Button {
+            showScheduleSnippet = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 13, weight: .semibold))
+                
+                if scheduleViewModel.schedules.isEmpty {
+                    Text("Schedules")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                } else {
+                    Text("\(scheduleViewModel.schedules.count)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+            }
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.12))
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 

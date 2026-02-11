@@ -235,5 +235,119 @@ actor APIService {
         }
     }
     
+    // MARK: - Payment Schedules
+    
+    func fetchPaymentSchedules() async throws -> [PaymentSchedule] {
+        let urlString = "\(baseURL)/payment-schedule"
+        logRequest("GET", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        do {
+            return try decoder.decode([PaymentSchedule].self, from: data)
+        } catch {
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
+            throw APIError.decodingError
+        }
+    }
+    
+    func createPaymentSchedule(_ schedule: PaymentScheduleCreate) async throws {
+        let urlString = "\(baseURL)/payment-schedule"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try encoder.encode(schedule)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
+    func updatePaymentSchedule(id: String, _ schedule: PaymentScheduleCreate) async throws {
+        let urlString = "\(baseURL)/payment-schedule/\(id)"
+        logRequest("PUT", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try encoder.encode(schedule)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
+    func deletePaymentSchedule(id: String) async throws {
+        let urlString = "\(baseURL)/payment-schedule/\(id)"
+        logRequest("DELETE", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 204 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
 }
 
