@@ -349,5 +349,92 @@ actor APIService {
         }
     }
     
+    // MARK: - Cash
+    
+    func fetchCashStatus() async throws -> CashResponse {
+        let urlString = "\(baseURL)/cash"
+        logRequest("GET", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        do {
+            return try decoder.decode(CashResponse.self, from: data)
+        } catch {
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
+            throw APIError.decodingError
+        }
+    }
+    
+    func addCashTransaction(_ input: CashTransactionInput) async throws {
+        let urlString = "\(baseURL)/cash"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try encoder.encode(input)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
+    func resetCashData() async throws {
+        let urlString = "\(baseURL)/cash"
+        logRequest("DELETE", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
 }
 

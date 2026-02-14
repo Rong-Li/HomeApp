@@ -14,6 +14,8 @@ struct TransactionsView: View {
     @State private var showFilters = false
     @State private var scheduleViewModel = PaymentScheduleViewModel()
     @State private var showScheduleSnippet = false
+    @State private var cashViewModel = CashViewModel()
+    @State private var showCashSnippet = false
     
     var body: some View {
         NavigationStack {
@@ -54,10 +56,16 @@ struct TransactionsView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $showCashSnippet) {
+                CashSnippetView(viewModel: cashViewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
         }
         .task {
             await viewModel.loadTransactions()
             await scheduleViewModel.loadSchedules()
+            await cashViewModel.loadStatus()
         }
         .onChange(of: viewModel.selectedTimeRange) {
             Task { await viewModel.loadTransactions() }
@@ -68,43 +76,50 @@ struct TransactionsView: View {
         VStack(spacing: 0) {
             // Control header
             VStack(spacing: 10) {
-                // Search bar - full width
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.quaternary)
-                    TextField("Search", text: $viewModel.searchText)
-                        .font(.system(size: 14, design: .rounded))
-                        .textFieldStyle(.plain)
-                    
-                    if !viewModel.searchText.isEmpty {
-                        Button {
-                            viewModel.searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.quaternary)
+                // Top row: Search bar + Filter
+                HStack(spacing: 8) {
+                    // Search bar
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.quaternary)
+                        TextField("Search", text: $viewModel.searchText)
+                            .font(.system(size: 14, design: .rounded))
+                            .textFieldStyle(.plain)
+                        
+                        if !viewModel.searchText.isEmpty {
+                            Button {
+                                viewModel.searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.quaternary)
+                            }
                         }
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color(.tertiarySystemFill).opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    
+                    // Filter button next to search
+                    filterButton
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Color(.tertiarySystemFill).opacity(0.8))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
                 
-                // Controls row: Time Range | Filter | Schedules
+                // Controls row: Time Range (Prominent) | Schedules/Cash
                 HStack(spacing: 8) {
-                    // Time range selector
+                    // Time range selector - made more prominent with a border and background
                     TimeRangePickerView(selectedRange: $viewModel.selectedTimeRange)
                     
-                    // Filter button
-                    filterButton
-                    
                     Spacer()
+                    
+                    // Cash pill
+                    cashPill
                     
                     // Schedule pill
                     schedulePill
                 }
+                .padding(.top, 2)
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
@@ -177,28 +192,55 @@ struct TransactionsView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 12, weight: .semibold))
-                Text("Filters")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .semibold))
                 
                 if !viewModel.filters.isEmpty {
                     Text("\(viewModel.filters.activeCount)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.accentColor))
+                        .background(Circle().fill(Color.accentColor))
                 }
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.vertical, 8)
             .background(
-                Capsule()
-                    .fill(Color(.tertiarySystemFill))
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.tertiarySystemFill).opacity(0.8))
             )
         }
         .buttonStyle(.plain)
+    }
+    
+    private var cashPill: some View {
+        Button {
+            showCashSnippet = true
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                
+                Text("Cash")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.green, Color.green.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .shadow(color: Color.green.opacity(0.3), radius: 4, y: 2)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
     
     private var schedulePill: some View {

@@ -35,11 +35,12 @@ struct TimeRangePickerView: View {
                     .foregroundStyle(.tertiary)
             }
             .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .background(
-                Capsule()
-                    .fill(Color(.tertiarySystemFill))
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.tertiarySystemFill).opacity(0.8))
+                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             )
         }
     }
