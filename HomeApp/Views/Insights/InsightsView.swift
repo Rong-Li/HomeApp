@@ -13,13 +13,14 @@ struct InsightsView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
                     spendingSummarySection
                     categoryBreakdownSection
                 }
                 .padding()
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Insights")
             .task {
                 await viewModel.loadAllData()
@@ -34,8 +35,10 @@ struct InsightsView: View {
             // Header
             if let current = viewModel.trendResponse?.currentMonth {
                 Text(monthDisplayName(current.month) + " Spending")
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
                 
                 Text(formatCurrency(current.netExpense))
                     .font(.system(size: 36, weight: .bold, design: .rounded))
@@ -131,15 +134,18 @@ struct InsightsView: View {
                 ? Color.green.opacity(0.4)
                 : Color.green
             )
-            .cornerRadius(4)
+            .cornerRadius(6)
         }
         .frame(height: 200)
         .chartYAxis {
             AxisMarks(position: .leading) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 3]))
+                    .foregroundStyle(Color(.separator).opacity(0.4))
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text(compactCurrency(v))
                             .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }
@@ -161,8 +167,10 @@ struct InsightsView: View {
     private var categoryBreakdownSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Spending by Category")
-                .font(.headline)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .tracking(0.5)
             
             // Period picker
             Picker("Period", selection: $viewModel.selectedBreakdownPeriod) {
@@ -174,6 +182,10 @@ struct InsightsView: View {
             
             if let data = viewModel.currentBreakdownData {
                 categoryDonutChart(data: data)
+                
+                Divider()
+                    .padding(.vertical, 2)
+                
                 categoryLegend(data: data)
             } else if viewModel.isBreakdownLoading {
                 ProgressView()
@@ -226,12 +238,12 @@ struct InsightsView: View {
         let sorted = data.netByCategory.sorted { $0.value > $1.value }
         let total = data.netExpense
         
-        return VStack(spacing: 8) {
+        return VStack(spacing: 6) {
             ForEach(sorted, id: \.key) { item in
-                HStack {
-                    Circle()
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(colorForCategory(item.key))
-                        .frame(width: 10, height: 10)
+                        .frame(width: 4, height: 32)
                     
                     if let cat = Category(rawValue: item.key) {
                         Text(cat.emoji + " " + cat.displayName)
@@ -243,9 +255,9 @@ struct InsightsView: View {
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing) {
+                    VStack(alignment: .trailing, spacing: 2) {
                         Text(formatCurrency(item.value))
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.semibold))
                         
                         HStack(spacing: 4) {
                             if total > 0 {
@@ -256,9 +268,13 @@ struct InsightsView: View {
                             }
                         }
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                     }
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color(.tertiarySystemFill).opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
     }
@@ -308,12 +324,24 @@ struct InsightsView: View {
         return monthStr
     }
     
+    // Muted, professional palette for charts
+    private static let insightColors: [Category: Color] = [
+        .groceries:      Color(hue: 0.40, saturation: 0.42, brightness: 0.72),  // sage green
+        .eatOut:         Color(hue: 0.07, saturation: 0.42, brightness: 0.85),  // warm terracotta
+        .transportation: Color(hue: 0.58, saturation: 0.38, brightness: 0.75),  // steel blue
+        .mortgage:       Color(hue: 0.75, saturation: 0.32, brightness: 0.72),  // dusty purple
+        .utilities:      Color(hue: 0.13, saturation: 0.38, brightness: 0.85),  // muted amber
+        .shopping:       Color(hue: 0.92, saturation: 0.32, brightness: 0.78),  // mauve pink
+        .gas:            Color(hue: 0.02, saturation: 0.38, brightness: 0.76),  // clay red
+        .insurance:      Color(hue: 0.50, saturation: 0.35, brightness: 0.72),  // slate teal
+        .salary:         Color(hue: 0.45, saturation: 0.30, brightness: 0.78),  // soft mint
+    ]
+    
     private func colorForCategory(_ key: String) -> Color {
         if let cat = Category(rawValue: key) {
-            return cat.color
+            return Self.insightColors[cat] ?? cat.color
         }
-        // Fallback for unknown categories
-        return .gray
+        return Color(hue: 0, saturation: 0, brightness: 0.60)
     }
 }
 
