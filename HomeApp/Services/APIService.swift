@@ -436,5 +436,79 @@ actor APIService {
         }
     }
     
+    // MARK: - Reports / Insights
+    
+    func fetchSpendingTrend(months: Int = 6, category: String? = nil) async throws -> TrendResponse {
+        var components = URLComponents(string: "\(baseURL)/report/trend")
+        var queryItems = [URLQueryItem(name: "months", value: "\(months)")]
+        if let category = category {
+            queryItems.append(URLQueryItem(name: "category", value: category))
+        }
+        components?.queryItems = queryItems
+        
+        guard let urlString = components?.string, let url = components?.url else {
+            throw APIError.invalidURL
+        }
+        
+        logRequest("GET", urlString)
+        
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        do {
+            return try decoder.decode(TrendResponse.self, from: data)
+        } catch {
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
+            throw APIError.decodingError
+        }
+    }
+    
+    func fetchCategoryBreakdown() async throws -> CategoryBreakdownResponse {
+        let urlString = "\(baseURL)/report/category-breakdown"
+        logRequest("GET", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        do {
+            return try decoder.decode(CategoryBreakdownResponse.self, from: data)
+        } catch {
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
+            throw APIError.decodingError
+        }
+    }
+    
 }
-

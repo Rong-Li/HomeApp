@@ -16,12 +16,14 @@ enum Category: String, Codable, CaseIterable, Identifiable {
     case shopping = "Shopping"
     case gas = "Gas"
     case insurance = "Insurance"
+    case salary = "Salary"
     
     var id: String { rawValue }
     
     var displayName: String {
         switch self {
         case .eatOut: return "Eat Out"
+        case .salary: return "Salary"
         default: return rawValue
         }
     }
@@ -36,6 +38,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shopping: return "bag.fill"
         case .gas: return "fuelpump.fill"
         case .insurance: return "shield.fill"
+        case .salary: return "dollarsign.circle.fill"
         }
     }
     
@@ -49,6 +52,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shopping: return .pink
         case .gas: return .red
         case .insurance: return .teal
+        case .salary: return .mint
         }
     }
     
@@ -62,6 +66,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shopping: return "🛍️"
         case .gas: return "⛽"
         case .insurance: return "🛡️"
+        case .salary: return "💰"
         }
     }
 }

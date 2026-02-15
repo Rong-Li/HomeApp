@@ -18,7 +18,7 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            PlaceholderView(title: "Insights", subtitle: "Coming Soon", icon: "chart.pie")
+            InsightsView()
                 .tabItem {
                     Label("Insights", systemImage: "chart.pie")
                 }
