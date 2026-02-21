@@ -10,6 +10,9 @@ import Charts
 
 struct InsightsView: View {
     @StateObject private var viewModel = InsightsViewModel()
+    @State private var selectedBarMonth: String?
+    @State private var selectedPieCategory: String?
+    @State private var selectedPieAngle: Double?
     
     var body: some View {
         NavigationStack {
@@ -130,13 +133,36 @@ struct InsightsView: View {
                 y: .value("Spending", entry.netExpense)
             )
             .foregroundStyle(
-                entry.month == trend.currentMonth.month
-                ? Color.green.opacity(0.4)
-                : Color.green
+                selectedBarMonth == shortMonth(entry.month)
+                ? Color.green
+                : entry.month == trend.currentMonth.month
+                    ? Color.green.opacity(0.4)
+                    : Color.green
             )
             .cornerRadius(6)
+            .opacity(selectedBarMonth == nil || selectedBarMonth == shortMonth(entry.month) ? 1.0 : 0.4)
         }
         .frame(height: 200)
+        .chartXSelection(value: $selectedBarMonth)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                if let selected = selectedBarMonth,
+                   let entry = allEntries.first(where: { shortMonth($0.month) == selected }) {
+                    let xPos = proxy.position(forX: selected) ?? 0
+                    
+                    Text(formatCurrency(entry.netExpense))
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+                        )
+                        .position(x: xPos, y: 10)
+                }
+            }
+        }
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 3]))
@@ -214,6 +240,7 @@ struct InsightsView: View {
                 angularInset: 1.5
             )
             .foregroundStyle(colorForCategory(item.key))
+            .opacity(selectedPieCategory == nil || selectedPieCategory == item.key ? 1.0 : 0.4)
             .annotation(position: .overlay) {
                 if total > 0 && item.value / total > 0.08 {
                     Text(String(format: "%.0f%%", (item.value / total) * 100))
@@ -222,14 +249,37 @@ struct InsightsView: View {
                 }
             }
         }
+        .chartAngleSelection(value: $selectedPieAngle)
+        .onChange(of: selectedPieAngle) { _, newValue in
+            if let newValue {
+                selectedPieCategory = findCategory(for: newValue, in: sorted)
+            } else {
+                selectedPieCategory = nil
+            }
+        }
         .frame(height: 220)
         .chartBackground { _ in
             VStack {
-                Text(formatCurrency(total))
-                    .font(.title3.bold())
-                Text("Total")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let selected = selectedPieCategory,
+                   let amount = data.netByCategory[selected] {
+                    if let cat = Category(rawValue: selected) {
+                        Text(cat.emoji)
+                            .font(.title2)
+                        Text(cat.displayName)
+                            .font(.caption.bold())
+                    } else {
+                        Text(selected)
+                            .font(.caption.bold())
+                    }
+                    Text(formatCurrency(amount))
+                        .font(.title3.bold())
+                } else {
+                    Text(formatCurrency(total))
+                        .font(.title3.bold())
+                    Text("Total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -280,6 +330,17 @@ struct InsightsView: View {
     }
     
     // MARK: - Helpers
+    
+    private func findCategory(for angle: Double, in sorted: [(key: String, value: Double)]) -> String? {
+        var cumulative = 0.0
+        for item in sorted {
+            cumulative += max(item.value, 0)
+            if angle <= cumulative {
+                return item.key
+            }
+        }
+        return sorted.last?.key
+    }
     
     private func formatCurrency(_ value: Double) -> String {
         let formatter = NumberFormatter()
