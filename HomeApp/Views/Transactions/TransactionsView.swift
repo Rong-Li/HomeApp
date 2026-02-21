@@ -16,6 +16,8 @@ struct TransactionsView: View {
     @State private var showScheduleSnippet = false
     @State private var cashViewModel = CashViewModel()
     @State private var showCashSnippet = false
+    @State private var balanceViewModel = BalanceViewModel()
+    @State private var showBalanceSnippet = false
     
     var body: some View {
         NavigationStack {
@@ -61,11 +63,17 @@ struct TransactionsView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $showBalanceSnippet) {
+                BalanceSnippetView(viewModel: balanceViewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
         }
         .task {
             await viewModel.loadTransactions()
             await scheduleViewModel.loadSchedules()
             await cashViewModel.loadStatus()
+            await balanceViewModel.loadBalances()
         }
         .onChange(of: viewModel.selectedTimeRange) {
             Task { await viewModel.loadTransactions() }
@@ -115,6 +123,9 @@ struct TransactionsView: View {
                     
                     // Cash pill
                     cashPill
+                    
+                    // Balance pill
+                    balancePill
                     
                     // Schedule pill
                     schedulePill
@@ -220,13 +231,13 @@ struct TransactionsView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 
                 Text("Cash")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
                 Capsule()
@@ -243,16 +254,45 @@ struct TransactionsView: View {
         .buttonStyle(ScaleButtonStyle())
     }
     
+    private var balancePill: some View {
+        Button {
+            showBalanceSnippet = true
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "book.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                
+                Text("Bal")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.orange, Color.orange.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .shadow(color: Color.orange.opacity(0.3), radius: 4, y: 2)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+    
     private var schedulePill: some View {
         Button {
             showScheduleSnippet = true
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 
                 Text(scheduleViewModel.schedules.isEmpty ? "Schedules" : "\(scheduleViewModel.schedules.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 14)

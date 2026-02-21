@@ -511,4 +511,93 @@ actor APIService {
         }
     }
     
+    // MARK: - Balance
+    
+    func fetchBalances() async throws -> [Balance] {
+        let urlString = "\(baseURL)/balance"
+        logRequest("GET", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        do {
+            return try decoder.decode([Balance].self, from: data)
+        } catch {
+            #if DEBUG
+            print("[API] Decoding error: \(error)")
+            #endif
+            throw APIError.decodingError
+        }
+    }
+    
+    func createBalance(_ input: BalanceInput) async throws -> BalanceResponse {
+        let urlString = "\(baseURL)/balance"
+        logRequest("POST", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try encoder.encode(input)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 201 || httpResponse.statusCode == 202 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        return try decoder.decode(BalanceResponse.self, from: data)
+    }
+    
+    func deleteBalance(id: String) async throws {
+        let urlString = "\(baseURL)/balance/\(id)"
+        logRequest("DELETE", urlString)
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        for (key, value) in await authHeader {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        logResponse(response, data: data)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 204 else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+    }
+    
 }
