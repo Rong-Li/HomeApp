@@ -10,7 +10,7 @@ import SwiftUI
 
 struct LogExpenseIntent: AppIntent {
     static var title: LocalizedStringResource = "Log Expense"
-    static var description = IntentDescription("Quickly log a new expense with category, amount, and type")
+    static var description = IntentDescription("Quickly log a new expense with category and amount. Use +/- for income.")
     static var openAppWhenRun: Bool = false
     
     // MARK: - Parameters
@@ -24,17 +24,10 @@ struct LogExpenseIntent: AppIntent {
     
     @Parameter(
         title: "Amount",
-        description: "The expense amount",
+        description: "The amount (use +/- for income)",
         requestValueDialog: "What's the amount?"
     )
     var amount: Double
-    
-    @Parameter(
-        title: "Type",
-        description: "Transaction type",
-        default: .debit
-    )
-    var transactionType: TransactionTypeEntity
     
     @Parameter(title: "Merchant", description: "Merchant name (optional)")
     var merchant: String?
@@ -49,7 +42,7 @@ struct LogExpenseIntent: AppIntent {
     // MARK: - Parameter Summary
     
     static var parameterSummary: some ParameterSummary {
-        Summary("Log \(\.$category) \(\.$transactionType) of \(\.$amount): \(\.$note)") {
+        Summary("Log \(\.$category) \(\.$amount): \(\.$note)") {
             \.$merchant
         }
     }
@@ -57,10 +50,16 @@ struct LogExpenseIntent: AppIntent {
     // MARK: - Perform
     
     func perform() async throws -> some IntentResult & ShowsSnippetView & ProvidesDialog {
-        // Validate inputs - this ensures the system prompts for missing values
-        guard amount > 0 else {
+        // Validate inputs
+        guard amount != 0 else {
             throw $amount.needsValueError("What amount would you like to log?")
         }
+        
+        let absAmount = abs(amount)
+        
+        // Negative amount (via +/- button) = income, positive = expense
+        let isCredit = amount < 0
+        let transactionType: TransactionType = isCredit ? .credit : .debit
         
         // Prompt for note if not provided
         if note == nil {
@@ -72,9 +71,9 @@ struct LogExpenseIntent: AppIntent {
         
         // Create expense
         let expense = ExpenseCreate(
-            amount: Decimal(amount),
+            amount: Decimal(absAmount),
             category: category.toCategory(),
-            transactionType: transactionType.toTransactionType(),
+            transactionType: transactionType,
             currency: .cad,
             merchant: merchant?.isEmpty == false ? merchant : nil,
             description: note?.isEmpty == false ? note : nil,
@@ -85,9 +84,10 @@ struct LogExpenseIntent: AppIntent {
         do {
             _ = try await APIService.shared.createExpense(expense)
             
-            let formattedAmount = NumberFormatter.currency.string(from: NSDecimalNumber(decimal: Decimal(amount))) ?? "$\(amount)"
-            let sign = transactionType.toTransactionType() == .debit ? "-" : "+"
-            let message = "\(category.displayName) \(sign)\(formattedAmount)"
+            let formattedAmount = NumberFormatter.currency.string(from: NSDecimalNumber(decimal: Decimal(absAmount))) ?? "$\(absAmount)"
+            let message = isCredit
+                ? "\(category.displayName) +\(formattedAmount)"
+                : "\(category.displayName) \(formattedAmount)"
             
             return .result(
                 dialog: "Logged \(message)",
@@ -155,26 +155,6 @@ enum CategoryEntity: String, AppEnum {
         case .gift: return .gift
         case .travel: return .travel
         case .miscellaneous: return .miscellaneous
-        }
-    }
-}
-
-// MARK: - Transaction Type Entity
-
-enum TransactionTypeEntity: String, AppEnum {
-    case debit = "Expense"
-    case credit = "Income"
-    
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Type")
-    static var caseDisplayRepresentations: [TransactionTypeEntity: DisplayRepresentation] = [
-        .debit: "💸  Expense",
-        .credit: "💰  Income"
-    ]
-    
-    func toTransactionType() -> TransactionType {
-        switch self {
-        case .debit: return .debit
-        case .credit: return .credit
         }
     }
 }
