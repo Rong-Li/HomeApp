@@ -99,47 +99,62 @@ struct LogExpenseIntent: AppIntent {
     }
 }
 
-// MARK: - Category Entity
+// MARK: - Category Entity (Expense Only)
 
 enum CategoryEntity: String, AppEnum {
     case groceries = "Groceries"
-    case eatOut = "EatOut"
-    case transportation = "Transportation"
-    case mortgage = "Mortgage"
-    case utilities = "Utilities"
+    case dineOut = "Dine Out"
     case shopping = "Shopping"
-    case gas = "Gas"
-    case insurance = "Insurance"
+    case car = "Car"
+    case entertainment = "Entertainment"
+    case medical = "Medical"
+    case transportation = "Transportation"
+    case personalImprovement = "Personal Improvement"
+    case housing = "Housing"
+    case homeImprovement = "Home Improvement"
+    case utilities = "Utilities"
+    case gift = "Gift"
+    case travel = "Travel"
+    case miscellaneous = "Miscellaneous"
     
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Category")
     static var caseDisplayRepresentations: [CategoryEntity: DisplayRepresentation] = [
         .groceries: "🛒  Groceries",
-        .eatOut: "🍽️  Eat Out",
-        .transportation: "🚗  Transportation",
-        .mortgage: "🏠  Mortgage",
-        .utilities: "⚡  Utilities",
+        .dineOut: "🍽️  Dine Out",
         .shopping: "🛍️  Shopping",
-        .gas: "⛽  Gas",
-        .insurance: "🛡️  Insurance"
+        .car: "🚗  Car",
+        .entertainment: "🎾  Entertainment",
+        .medical: "🏥  Medical",
+        .transportation: "🚌  Transportation",
+        .personalImprovement: "📚  Personal Improvement",
+        .housing: "🏠  Housing",
+        .homeImprovement: "🔨  Home Improvement",
+        .utilities: "⚡  Utilities",
+        .gift: "🎁  Gift",
+        .travel: "✈️  Travel",
+        .miscellaneous: "📌  Miscellaneous"
     ]
     
     var displayName: String {
-        switch self {
-        case .eatOut: return "Eat Out"
-        default: return rawValue
-        }
+        rawValue
     }
     
     func toCategory() -> Category {
         switch self {
         case .groceries: return .groceries
-        case .eatOut: return .eatOut
-        case .transportation: return .transportation
-        case .mortgage: return .mortgage
-        case .utilities: return .utilities
+        case .dineOut: return .dineOut
         case .shopping: return .shopping
-        case .gas: return .gas
-        case .insurance: return .insurance
+        case .car: return .car
+        case .entertainment: return .entertainment
+        case .medical: return .medical
+        case .transportation: return .transportation
+        case .personalImprovement: return .personalImprovement
+        case .housing: return .housing
+        case .homeImprovement: return .homeImprovement
+        case .utilities: return .utilities
+        case .gift: return .gift
+        case .travel: return .travel
+        case .miscellaneous: return .miscellaneous
         }
     }
 }

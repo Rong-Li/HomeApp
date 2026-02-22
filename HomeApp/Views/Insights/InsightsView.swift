@@ -387,15 +387,25 @@ struct InsightsView: View {
     
     // Muted, professional palette for charts
     private static let insightColors: [Category: Color] = [
-        .groceries:      Color(hue: 0.40, saturation: 0.42, brightness: 0.72),  // sage green
-        .eatOut:         Color(hue: 0.07, saturation: 0.42, brightness: 0.85),  // warm terracotta
-        .transportation: Color(hue: 0.58, saturation: 0.38, brightness: 0.75),  // steel blue
-        .mortgage:       Color(hue: 0.75, saturation: 0.32, brightness: 0.72),  // dusty purple
-        .utilities:      Color(hue: 0.13, saturation: 0.38, brightness: 0.85),  // muted amber
-        .shopping:       Color(hue: 0.92, saturation: 0.32, brightness: 0.78),  // mauve pink
-        .gas:            Color(hue: 0.02, saturation: 0.38, brightness: 0.76),  // clay red
-        .insurance:      Color(hue: 0.50, saturation: 0.35, brightness: 0.72),  // slate teal
-        .salary:         Color(hue: 0.45, saturation: 0.30, brightness: 0.78),  // soft mint
+        // Expense
+        .groceries:           Color(hue: 0.40, saturation: 0.42, brightness: 0.72),  // sage green
+        .dineOut:             Color(hue: 0.07, saturation: 0.42, brightness: 0.85),  // warm terracotta
+        .shopping:            Color(hue: 0.92, saturation: 0.32, brightness: 0.78),  // mauve pink
+        .car:                 Color(hue: 0.02, saturation: 0.38, brightness: 0.76),  // clay red
+        .entertainment:       Color(hue: 0.18, saturation: 0.45, brightness: 0.85),  // lime green
+        .medical:             Color(hue: 0.58, saturation: 0.38, brightness: 0.75),  // steel blue
+        .transportation:      Color(hue: 0.52, saturation: 0.35, brightness: 0.75),  // slate cyan
+        .personalImprovement: Color(hue: 0.68, saturation: 0.30, brightness: 0.70),  // soft indigo
+        .housing:             Color(hue: 0.08, saturation: 0.30, brightness: 0.65),  // warm brown
+        .homeImprovement:     Color(hue: 0.13, saturation: 0.38, brightness: 0.85),  // muted amber
+        .utilities:           Color(hue: 0.50, saturation: 0.35, brightness: 0.72),  // slate teal
+        .gift:                Color(hue: 0.85, saturation: 0.35, brightness: 0.80),  // soft rose
+        .travel:              Color(hue: 0.55, saturation: 0.40, brightness: 0.78),  // ocean blue
+        .miscellaneous:       Color(hue: 0.00, saturation: 0.00, brightness: 0.60),  // neutral gray
+        // Earning
+        .salary:              Color(hue: 0.45, saturation: 0.30, brightness: 0.78),  // soft mint
+        .taxReturn:           Color(hue: 0.30, saturation: 0.35, brightness: 0.70),  // olive green
+        .cashBack:            Color(hue: 0.48, saturation: 0.25, brightness: 0.75),  // muted aqua
     ]
     
     private func colorForCategory(_ key: String) -> Color {
