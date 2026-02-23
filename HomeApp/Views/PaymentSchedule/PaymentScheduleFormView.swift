@@ -16,11 +16,12 @@ struct PaymentScheduleFormView: View {
     // Form fields
     @State private var name: String = ""
     @State private var amountText: String = ""
+    @FocusState private var isAmountFocused: Bool
     @State private var currency: Currency = .cad
     @State private var transactionType: TransactionType = .debit
     @State private var category: Category = .utilities
     @State private var frequency: ScheduleFrequency = .monthly
-    @State private var monthlyDates: Set<Int> = [1]
+    @State private var monthlyDates: Set<Int> = []
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date()
     @State private var hasEndDate: Bool = false
@@ -58,6 +59,7 @@ struct PaymentScheduleFormView: View {
                         TextField("Amount", text: $amountText)
                             .font(.system(size: 16, design: .rounded))
                             .keyboardType(.decimalPad)
+                            .focused($isAmountFocused)
                     }
                     
                     Picker("Currency", selection: $currency) {
@@ -132,6 +134,12 @@ struct PaymentScheduleFormView: View {
             .navigationTitle(isEditing ? "Edit Schedule" : "New Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isAmountFocused = false
+                    }
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }

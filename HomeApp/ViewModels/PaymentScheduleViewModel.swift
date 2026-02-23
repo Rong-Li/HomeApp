@@ -30,7 +30,8 @@ class PaymentScheduleViewModel {
         error = nil
         
         do {
-            schedules = try await apiService.fetchPaymentSchedules()
+            let fetched = try await apiService.fetchPaymentSchedules()
+            schedules = fetched.sorted { $0.amount > $1.amount }
         } catch {
             self.error = error as? APIError ?? .unknown
         }

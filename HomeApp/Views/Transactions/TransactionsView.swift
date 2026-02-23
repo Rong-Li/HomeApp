@@ -132,7 +132,7 @@ struct TransactionsView: View {
                 }
                 .padding(.top, 2)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.top, 4)
             .padding(.bottom, 12)
             .background(

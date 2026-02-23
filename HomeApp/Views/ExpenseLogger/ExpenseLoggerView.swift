@@ -11,6 +11,7 @@ struct ExpenseLoggerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ExpenseLoggerViewModel()
     @FocusState private var isAmountFocused: Bool
+    @State private var datePickerId: UUID = UUID()
     var onSuccess: (() -> Void)?
     
     var body: some View {
@@ -58,7 +59,7 @@ struct ExpenseLoggerView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(viewModel.isSubmitting)
         .onAppear {
@@ -118,7 +119,6 @@ struct ExpenseLoggerView: View {
                 
                 // Details section
                 Section {
-                    TextField("Merchant", text: $viewModel.merchant)
                     TextField("Note", text: $viewModel.note)
                 } header: {
                     Text("Details (Optional)")
@@ -140,21 +140,13 @@ struct ExpenseLoggerView: View {
     // MARK: - Category Row
     
     private var categoryRow: some View {
-        Picker(selection: $viewModel.selectedCategory) {
+        Picker("Category", selection: $viewModel.selectedCategory) {
             ForEach(Category.allCases) { category in
-                HStack(spacing: 8) {
-                    Text(category.emoji)
-                    Text(category.displayName)
-                }
-                .tag(category)
-            }
-        } label: {
-            HStack {
-                Text("Category")
-                Spacer()
+                Text("\(category.emoji) \(category.displayName)")
+                    .tag(category)
             }
         }
-        .pickerStyle(.navigationLink)
+        .pickerStyle(.menu)
         .sensoryFeedback(.selection, trigger: viewModel.selectedCategory)
     }
     
@@ -166,6 +158,10 @@ struct ExpenseLoggerView: View {
             selection: $viewModel.selectedDate,
             displayedComponents: [.date, .hourAndMinute]
         )
+        .id(datePickerId)
+        .onChange(of: viewModel.selectedDate) { _ in
+            datePickerId = UUID()
+        }
         .sensoryFeedback(.selection, trigger: viewModel.selectedDate)
     }
 }
