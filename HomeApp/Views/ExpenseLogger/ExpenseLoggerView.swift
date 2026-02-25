@@ -11,7 +11,6 @@ struct ExpenseLoggerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ExpenseLoggerViewModel()
     @FocusState private var isAmountFocused: Bool
-    @State private var datePickerId: UUID = UUID()
     var onSuccess: (() -> Void)?
     
     var body: some View {
@@ -158,10 +157,6 @@ struct ExpenseLoggerView: View {
             selection: $viewModel.selectedDate,
             displayedComponents: [.date, .hourAndMinute]
         )
-        .id(datePickerId)
-        .onChange(of: viewModel.selectedDate) { _ in
-            datePickerId = UUID()
-        }
         .sensoryFeedback(.selection, trigger: viewModel.selectedDate)
     }
 }

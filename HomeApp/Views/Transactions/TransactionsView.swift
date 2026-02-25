@@ -291,7 +291,7 @@ struct TransactionsView: View {
                 Image(systemName: "calendar.badge.clock")
                     .font(.system(size: 13, weight: .semibold))
                 
-                Text(scheduleViewModel.schedules.isEmpty ? "Schedules" : "\(scheduleViewModel.schedules.count)")
+                Text(scheduleViewModel.isLoading ? "-" : "\(scheduleViewModel.schedules.count)")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
             }
             .foregroundStyle(.white)

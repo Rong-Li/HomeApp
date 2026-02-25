@@ -13,6 +13,7 @@ struct TransactionDetailView: View {
     @State private var isEditing = false
     @State private var editingTransaction: Transaction?
     @State private var showDeleteConfirmation = false
+    @State private var showDeleteSuccess = false
     @State private var showDiscardAlert = false
     @Environment(\.dismiss) private var dismiss
     
@@ -24,47 +25,65 @@ struct TransactionDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                if isEditing, let binding = Binding($editingTransaction) {
-                    TransactionEditForm(transaction: binding)
-                } else {
-                    headerSection
-                    if viewModel.transaction.postalCode != nil {
-                        locationSection
-                    }
-                    detailsSection
-                    deleteSection
-                }
-            }
-            .padding()
-        }
-        .navigationTitle("Transaction")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(isEditing)
-        .toolbar {
-            if isEditing {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        if editingTransaction != viewModel.transaction {
-                            showDiscardAlert = true
-                        } else {
-                            isEditing = false
+        ZStack {
+            if showDeleteSuccess {
+                SuccessView(message: "Transaction deleted")
+                    .transition(.scale.combined(with: .opacity))
+                    .onAppear {
+                        Task {
+                            try? await Task.sleep(for: .seconds(1.5))
+                            onUpdate?()
+                            dismiss()
                         }
                     }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        Task { await saveChanges() }
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(viewModel.isSaving)
-                }
             } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") {
-                        editingTransaction = viewModel.transaction
-                        isEditing = true
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if isEditing, let binding = Binding($editingTransaction) {
+                            TransactionEditForm(transaction: binding)
+                        } else {
+                            headerSection
+                            if viewModel.transaction.postalCode != nil {
+                                locationSection
+                            }
+                            detailsSection
+                            deleteSection
+                        }
+                    }
+                    .padding()
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: showDeleteSuccess)
+        .navigationTitle("Transaction")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(isEditing || showDeleteSuccess)
+        .toolbar {
+            if !showDeleteSuccess {
+                if isEditing {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") {
+                            if editingTransaction != viewModel.transaction {
+                                showDiscardAlert = true
+                            } else {
+                                isEditing = false
+                            }
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            Task { await saveChanges() }
+                        }
+                        .fontWeight(.semibold)
+                        .disabled(viewModel.isSaving)
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Edit") {
+                            editingTransaction = viewModel.transaction
+                            isEditing = true
+                        }
                     }
                 }
             }
@@ -209,8 +228,7 @@ struct TransactionDetailView: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             
-            onUpdate?()
-            dismiss()
+            showDeleteSuccess = true
         } catch {
             viewModel.error = "Failed to delete transaction"
         }
