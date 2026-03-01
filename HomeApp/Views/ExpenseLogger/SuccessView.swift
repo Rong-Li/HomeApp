@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SuccessView: View {
     let message: String
+    var subtitle: String? = "logged!"
     
     @State private var showCheckmark = false
     @State private var showText = false
@@ -30,9 +31,12 @@ struct SuccessView: View {
             VStack(spacing: 4) {
                 Text(message)
                     .font(.headline)
-                Text("logged!")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             .opacity(showText ? 1 : 0)
             .offset(y: showText ? 0 : 10)

@@ -27,7 +27,7 @@ struct TransactionDetailView: View {
     var body: some View {
         ZStack {
             if showDeleteSuccess {
-                SuccessView(message: "Transaction deleted")
+                SuccessView(message: "Transaction deleted", subtitle: nil)
                     .transition(.scale.combined(with: .opacity))
                     .onAppear {
                         Task {
@@ -224,13 +224,17 @@ struct TransactionDetailView: View {
         do {
             try await viewModel.deleteTransaction()
             
-            // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            
-            showDeleteSuccess = true
+            await MainActor.run {
+                // Haptic feedback
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+                
+                showDeleteSuccess = true
+            }
         } catch {
-            viewModel.error = "Failed to delete transaction"
+            await MainActor.run {
+                viewModel.error = "Failed to delete transaction"
+            }
         }
     }
 }

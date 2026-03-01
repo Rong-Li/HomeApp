@@ -63,7 +63,7 @@ struct LogExpenseIntent: AppIntent {
         
         // Prompt for note if not provided
         if note == nil {
-            note = try? await $note.requestValue("Add a note?")
+            note = try await $note.requestValue("Add a note?")
         }
         
         // Fetch postal code (non-blocking, nil if unavailable)
