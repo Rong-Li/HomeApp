@@ -14,6 +14,7 @@ class InsightsViewModel: ObservableObject {
     // MARK: - Spending Trend State
     
     @Published var trendResponse: TrendResponse?
+    @Published var housingTrendResponse: TrendResponse?
     @Published var selectedMonths: Int = 6
     @Published var selectedCategory: String? = nil
     @Published var isTrendLoading = false
@@ -25,6 +26,9 @@ class InsightsViewModel: ObservableObject {
     @Published var selectedBreakdownPeriod: BreakdownPeriod = .lastMonth
     @Published var isBreakdownLoading = false
     @Published var breakdownError: String?
+    
+    // Housing filter (default: exclude housing)
+    @Published var includeHousing: Bool = false
     
     enum BreakdownPeriod: String, CaseIterable, Identifiable {
         case lastMonth = "Last Month"
@@ -52,20 +56,64 @@ class InsightsViewModel: ObservableObject {
         return cats.sorted()
     }
     
+    /// Current month net expense adjusted for housing toggle
+    var adjustedCurrentMonthExpense: Double? {
+        guard let current = trendResponse?.currentMonth else { return nil }
+        if includeHousing {
+            return current.netExpense
+        }
+        let housingAmount = housingTrendResponse?.currentMonth.netExpense ?? 0
+        return current.netExpense - housingAmount
+    }
+    
+    /// Trend entries adjusted for housing toggle
+    var adjustedTrendEntries: [TrendMonthEntry]? {
+        guard let trend = trendResponse else { return nil }
+        let allEntries = trend.trend + [
+            TrendMonthEntry(month: trend.currentMonth.month, netExpense: trend.currentMonth.netExpense)
+        ]
+        if includeHousing {
+            return allEntries
+        }
+        guard let housingTrend = housingTrendResponse else { return allEntries }
+        let housingAllEntries = housingTrend.trend + [
+            TrendMonthEntry(month: housingTrend.currentMonth.month, netExpense: housingTrend.currentMonth.netExpense)
+        ]
+        let housingByMonth = Dictionary(uniqueKeysWithValues: housingAllEntries.map { ($0.month, $0.netExpense) })
+        return allEntries.map { entry in
+            let housingAmount = housingByMonth[entry.month] ?? 0
+            return TrendMonthEntry(month: entry.month, netExpense: entry.netExpense - housingAmount)
+        }
+    }
+    
     var currentBreakdownData: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])? {
         guard let breakdown = breakdownResponse else { return nil }
+        
+        let raw: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])?
         
         switch selectedBreakdownPeriod {
         case .lastMonth:
             guard let data = breakdown.lastMonth else { return nil }
-            return (data.netExpense, data.netByCategory, data.countByCategory)
+            raw = (data.netExpense, data.netByCategory, data.countByCategory)
         case .currentYear:
             guard let data = breakdown.currentYear else { return nil }
-            return (data.netExpense, data.netByCategory, data.countByCategory)
+            raw = (data.netExpense, data.netByCategory, data.countByCategory)
         case .lastYear:
             guard let data = breakdown.lastYear else { return nil }
-            return (data.netExpense, data.netByCategory, data.countByCategory)
+            raw = (data.netExpense, data.netByCategory, data.countByCategory)
         }
+        
+        guard var result = raw else { return nil }
+        
+        if !includeHousing {
+            let housingKey = Category.housing.rawValue
+            let housingAmount = result.netByCategory[housingKey] ?? 0
+            result.netByCategory.removeValue(forKey: housingKey)
+            result.countByCategory.removeValue(forKey: housingKey)
+            result.netExpense -= housingAmount
+        }
+        
+        return result
     }
     
     var breakdownLabel: String {
@@ -86,6 +134,7 @@ class InsightsViewModel: ObservableObject {
     func loadAllData() async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadTrend() }
+            group.addTask { await self.loadHousingTrend() }
             group.addTask { await self.loadBreakdown() }
         }
     }
@@ -127,11 +176,27 @@ class InsightsViewModel: ObservableObject {
     
     func onMonthsChanged(_ months: Int) async {
         selectedMonths = months
-        await loadTrend()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.loadTrend() }
+            group.addTask { await self.loadHousingTrend() }
+        }
     }
     
     func onCategoryChanged(_ category: String?) async {
         selectedCategory = category
         await loadTrend()
+    }
+    
+    func loadHousingTrend() async {
+        do {
+            housingTrendResponse = try await APIService.shared.fetchSpendingTrend(
+                months: selectedMonths,
+                category: Category.housing.rawValue
+            )
+        } catch {
+            #if DEBUG
+            print("[InsightsVM] Housing trend error: \(error)")
+            #endif
+        }
     }
 }

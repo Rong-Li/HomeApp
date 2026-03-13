@@ -35,16 +35,28 @@ struct InsightsView: View {
     
     private var spendingSummarySection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header
-            if let current = viewModel.trendResponse?.currentMonth {
-                Text(monthDisplayName(current.month) + " Spending")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
+            // Header with housing toggle
+            HStack {
+                if let current = viewModel.trendResponse?.currentMonth {
+                    Text(monthDisplayName(current.month) + " Spending")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                }
                 
-                Text(formatCurrency(current.netExpense))
+                Spacer()
+                
+                housingTogglePill
+            }
+            
+            if let current = viewModel.trendResponse?.currentMonth,
+               let adjustedExpense = viewModel.adjustedCurrentMonthExpense {
+                
+                Text(formatCurrency(adjustedExpense))
                     .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.25), value: viewModel.includeHousing)
                 
                 HStack(spacing: 16) {
                     if let earning = viewModel.trendResponse?.previousMonthEarning, earning > 0 {
@@ -60,8 +72,8 @@ struct InsightsView: View {
             }
             
             // Bar Chart
-            if let trend = viewModel.trendResponse {
-                spendingBarChart(trend: trend)
+            if let entries = viewModel.adjustedTrendEntries, let trend = viewModel.trendResponse {
+                spendingBarChart(entries: entries, currentMonth: trend.currentMonth.month)
             } else if viewModel.isTrendLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, minHeight: 200)
@@ -122,12 +134,8 @@ struct InsightsView: View {
         .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
     }
     
-    private func spendingBarChart(trend: TrendResponse) -> some View {
-        let allEntries = trend.trend + [
-            TrendMonthEntry(month: trend.currentMonth.month, netExpense: trend.currentMonth.netExpense)
-        ]
-        
-        return Chart(allEntries, id: \.month) { entry in
+    private func spendingBarChart(entries: [TrendMonthEntry], currentMonth: String) -> some View {
+        Chart(entries, id: \.month) { entry in
             BarMark(
                 x: .value("Month", shortMonth(entry.month)),
                 y: .value("Spending", entry.netExpense)
@@ -135,7 +143,7 @@ struct InsightsView: View {
             .foregroundStyle(
                 selectedBarMonth == shortMonth(entry.month)
                 ? Color.green
-                : entry.month == trend.currentMonth.month
+                : entry.month == currentMonth
                     ? Color.green.opacity(0.4)
                     : Color.green
             )
@@ -147,7 +155,7 @@ struct InsightsView: View {
         .chartOverlay { proxy in
             GeometryReader { geo in
                 if let selected = selectedBarMonth,
-                   let entry = allEntries.first(where: { shortMonth($0.month) == selected }) {
+                   let entry = entries.first(where: { shortMonth($0.month) == selected }) {
                     let xPos = proxy.position(forX: selected) ?? 0
                     
                     Text(formatCurrency(entry.netExpense))
@@ -413,6 +421,43 @@ struct InsightsView: View {
             return Self.insightColors[cat] ?? cat.color
         }
         return Color(hue: 0, saturation: 0, brightness: 0.60)
+    }
+    
+    // MARK: - Housing Toggle Pill
+    
+    private var housingTogglePill: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.includeHousing.toggle()
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: viewModel.includeHousing ? "house.fill" : "house")
+                    .font(.system(size: 12, weight: .semibold))
+                
+                Text("Housing")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(viewModel.includeHousing ? .white : .secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(
+                        viewModel.includeHousing
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color.brown, Color.brown.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                          )
+                        : AnyShapeStyle(Color(.tertiarySystemFill))
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.includeHousing)
     }
 }
 
