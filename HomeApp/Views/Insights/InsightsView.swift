@@ -399,6 +399,7 @@ struct InsightsView: View {
         .groceries:           Color(hue: 0.40, saturation: 0.42, brightness: 0.72),  // sage green
         .dineOut:             Color(hue: 0.07, saturation: 0.42, brightness: 0.85),  // warm terracotta
         .shopping:            Color(hue: 0.92, saturation: 0.32, brightness: 0.78),  // mauve pink
+        .pet:                 Color(hue: 0.75, saturation: 0.35, brightness: 0.75),  // soft lavender
         .car:                 Color(hue: 0.02, saturation: 0.38, brightness: 0.76),  // clay red
         .entertainment:       Color(hue: 0.18, saturation: 0.45, brightness: 0.85),  // lime green
         .medical:             Color(hue: 0.58, saturation: 0.38, brightness: 0.75),  // steel blue

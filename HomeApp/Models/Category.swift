@@ -12,6 +12,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
     case groceries = "Groceries"
     case dineOut = "Dine Out"
     case shopping = "Shopping"
+    case pet = "Pet"
     case car = "Car"
     case entertainment = "Entertainment"
     case medical = "Medical"
@@ -35,7 +36,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
     
     var isExpense: Bool {
         switch self {
-        case .groceries, .dineOut, .shopping, .car, .entertainment,
+        case .groceries, .dineOut, .shopping, .pet, .car, .entertainment,
              .medical, .transportation, .personalImprovement,
              .housing, .homeImprovement, .utilities, .gift,
              .travel, .miscellaneous:
@@ -67,6 +68,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .groceries: return "cart.fill"
         case .dineOut: return "fork.knife"
         case .shopping: return "bag.fill"
+        case .pet: return "pawprint.fill"
         case .car: return "car.fill"
         case .entertainment: return "figure.tennis"
         case .medical: return "cross.case.fill"
@@ -91,6 +93,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .groceries: return .green
         case .dineOut: return .orange
         case .shopping: return .pink
+        case .pet: return .purple
         case .car: return .red
         case .entertainment: return Color(hue: 0.18, saturation: 0.8, brightness: 0.9)
         case .medical: return .blue
@@ -115,6 +118,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .groceries: return "🛒"
         case .dineOut: return "🍽️"
         case .shopping: return "🛍️"
+        case .pet: return "🐾"
         case .car: return "🚗"
         case .entertainment: return "🎾"
         case .medical: return "🏥"

@@ -59,7 +59,7 @@ class InsightsViewModel: ObservableObject {
     /// Current month net expense adjusted for housing toggle
     var adjustedCurrentMonthExpense: Double? {
         guard let current = trendResponse?.currentMonth else { return nil }
-        if includeHousing {
+        if includeHousing || selectedCategory != nil {
             return current.netExpense
         }
         let housingAmount = housingTrendResponse?.currentMonth.netExpense ?? 0
@@ -72,7 +72,7 @@ class InsightsViewModel: ObservableObject {
         let allEntries = trend.trend + [
             TrendMonthEntry(month: trend.currentMonth.month, netExpense: trend.currentMonth.netExpense)
         ]
-        if includeHousing {
+        if includeHousing || selectedCategory != nil {
             return allEntries
         }
         guard let housingTrend = housingTrendResponse else { return allEntries }

@@ -105,6 +105,7 @@ enum CategoryEntity: String, AppEnum {
     case groceries = "Groceries"
     case dineOut = "Dine Out"
     case shopping = "Shopping"
+    case pet = "Pet"
     case car = "Car"
     case entertainment = "Entertainment"
     case medical = "Medical"
@@ -122,6 +123,7 @@ enum CategoryEntity: String, AppEnum {
         .groceries: "🛒  Groceries",
         .dineOut: "🍽️  Dine Out",
         .shopping: "🛍️  Shopping",
+        .pet: "🐾  Pet",
         .car: "🚗  Car",
         .entertainment: "🎾  Entertainment",
         .medical: "🏥  Medical",
@@ -144,6 +146,7 @@ enum CategoryEntity: String, AppEnum {
         case .groceries: return .groceries
         case .dineOut: return .dineOut
         case .shopping: return .shopping
+        case .pet: return .pet
         case .car: return .car
         case .entertainment: return .entertainment
         case .medical: return .medical
