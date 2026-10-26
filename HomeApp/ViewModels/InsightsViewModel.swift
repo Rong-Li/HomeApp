@@ -15,6 +15,7 @@ class InsightsViewModel: ObservableObject {
     
     @Published var trendResponse: TrendResponse?
     @Published var housingTrendResponse: TrendResponse?
+    @Published var investmentTrendResponse: TrendResponse?
     @Published var selectedMonths: Int = 6
     @Published var selectedCategory: String? = nil
     @Published var isTrendLoading = false
@@ -29,6 +30,8 @@ class InsightsViewModel: ObservableObject {
     
     // Housing filter (default: exclude housing)
     @Published var includeHousing: Bool = false
+    // Investment filter (default: exclude investment)
+    @Published var includeInvestment: Bool = false
     
     enum BreakdownPeriod: String, CaseIterable, Identifiable {
         case lastMonth = "Last Month"
@@ -56,33 +59,52 @@ class InsightsViewModel: ObservableObject {
         return cats.sorted()
     }
     
-    /// Current month net expense adjusted for housing toggle
+    /// Current month net expense adjusted for housing and investment toggles
     var adjustedCurrentMonthExpense: Double? {
         guard let current = trendResponse?.currentMonth else { return nil }
-        if includeHousing || selectedCategory != nil {
-            return current.netExpense
+        var expense = current.netExpense
+        if selectedCategory == nil {
+            if !includeHousing {
+                expense -= housingTrendResponse?.currentMonth.netExpense ?? 0
+            }
+            if !includeInvestment {
+                expense -= investmentTrendResponse?.currentMonth.netExpense ?? 0
+            }
         }
-        let housingAmount = housingTrendResponse?.currentMonth.netExpense ?? 0
-        return current.netExpense - housingAmount
+        return expense
     }
     
-    /// Trend entries adjusted for housing toggle
+    /// Trend entries adjusted for housing and investment toggles
     var adjustedTrendEntries: [TrendMonthEntry]? {
         guard let trend = trendResponse else { return nil }
         let allEntries = trend.trend + [
             TrendMonthEntry(month: trend.currentMonth.month, netExpense: trend.currentMonth.netExpense)
         ]
-        if includeHousing || selectedCategory != nil {
-            return allEntries
+        guard selectedCategory == nil else { return allEntries }
+
+        // Build subtraction maps for excluded large-amount categories
+        var subtractionByMonth: [String: Double] = [:]
+
+        if !includeHousing, let housingTrend = housingTrendResponse {
+            let housingEntries = housingTrend.trend + [
+                TrendMonthEntry(month: housingTrend.currentMonth.month, netExpense: housingTrend.currentMonth.netExpense)
+            ]
+            for entry in housingEntries {
+                subtractionByMonth[entry.month, default: 0] += entry.netExpense
+            }
         }
-        guard let housingTrend = housingTrendResponse else { return allEntries }
-        let housingAllEntries = housingTrend.trend + [
-            TrendMonthEntry(month: housingTrend.currentMonth.month, netExpense: housingTrend.currentMonth.netExpense)
-        ]
-        let housingByMonth = Dictionary(uniqueKeysWithValues: housingAllEntries.map { ($0.month, $0.netExpense) })
+
+        if !includeInvestment, let investmentTrend = investmentTrendResponse {
+            let investmentEntries = investmentTrend.trend + [
+                TrendMonthEntry(month: investmentTrend.currentMonth.month, netExpense: investmentTrend.currentMonth.netExpense)
+            ]
+            for entry in investmentEntries {
+                subtractionByMonth[entry.month, default: 0] += entry.netExpense
+            }
+        }
+
         return allEntries.map { entry in
-            let housingAmount = housingByMonth[entry.month] ?? 0
-            return TrendMonthEntry(month: entry.month, netExpense: entry.netExpense - housingAmount)
+            TrendMonthEntry(month: entry.month, netExpense: entry.netExpense - (subtractionByMonth[entry.month] ?? 0))
         }
     }
     
@@ -112,6 +134,14 @@ class InsightsViewModel: ObservableObject {
             result.countByCategory.removeValue(forKey: housingKey)
             result.netExpense -= housingAmount
         }
+
+        if !includeInvestment {
+            let investmentKey = Category.investment.rawValue
+            let investmentAmount = result.netByCategory[investmentKey] ?? 0
+            result.netByCategory.removeValue(forKey: investmentKey)
+            result.countByCategory.removeValue(forKey: investmentKey)
+            result.netExpense -= investmentAmount
+        }
         
         return result
     }
@@ -135,6 +165,7 @@ class InsightsViewModel: ObservableObject {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadTrend() }
             group.addTask { await self.loadHousingTrend() }
+            group.addTask { await self.loadInvestmentTrend() }
             group.addTask { await self.loadBreakdown() }
         }
     }
@@ -179,6 +210,7 @@ class InsightsViewModel: ObservableObject {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadTrend() }
             group.addTask { await self.loadHousingTrend() }
+            group.addTask { await self.loadInvestmentTrend() }
         }
     }
     
@@ -196,6 +228,19 @@ class InsightsViewModel: ObservableObject {
         } catch {
             #if DEBUG
             print("[InsightsVM] Housing trend error: \(error)")
+            #endif
+        }
+    }
+
+    func loadInvestmentTrend() async {
+        do {
+            investmentTrendResponse = try await APIService.shared.fetchSpendingTrend(
+                months: selectedMonths,
+                category: Category.investment.rawValue
+            )
+        } catch {
+            #if DEBUG
+            print("[InsightsVM] Investment trend error: \(error)")
             #endif
         }
     }

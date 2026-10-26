@@ -47,7 +47,10 @@ struct InsightsView: View {
                 
                 Spacer()
                 
-                housingTogglePill
+                HStack(spacing: 6) {
+                    investmentTogglePill
+                    housingTogglePill
+                }
             }
             
             if let current = viewModel.trendResponse?.currentMonth,
@@ -57,6 +60,7 @@ struct InsightsView: View {
                     .font(.system(size: 36, weight: .bold, design: .rounded))
                     .contentTransition(.numericText())
                     .animation(.easeInOut(duration: 0.25), value: viewModel.includeHousing)
+                    .animation(.easeInOut(duration: 0.25), value: viewModel.includeInvestment)
                 
                 HStack(spacing: 16) {
                     if let earning = viewModel.trendResponse?.previousMonthEarning, earning > 0 {
@@ -405,6 +409,7 @@ struct InsightsView: View {
         .medical:             Color(hue: 0.58, saturation: 0.38, brightness: 0.75),  // steel blue
         .transportation:      Color(hue: 0.52, saturation: 0.35, brightness: 0.75),  // slate cyan
         .personalImprovement: Color(hue: 0.68, saturation: 0.30, brightness: 0.70),  // soft indigo
+        .investment:          Color(hue: 0.36, saturation: 0.42, brightness: 0.75),  // emerald green
         .housing:             Color(hue: 0.08, saturation: 0.30, brightness: 0.65),  // warm brown
         .homeImprovement:     Color(hue: 0.13, saturation: 0.38, brightness: 0.85),  // muted amber
         .utilities:           Color(hue: 0.50, saturation: 0.35, brightness: 0.72),  // slate teal
@@ -432,13 +437,8 @@ struct InsightsView: View {
                 viewModel.includeHousing.toggle()
             }
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: viewModel.includeHousing ? "house.fill" : "house")
-                    .font(.system(size: 12, weight: .semibold))
-                
-                Text("Housing")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-            }
+            Image(systemName: viewModel.includeHousing ? "house.fill" : "house")
+                .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(viewModel.includeHousing ? .white : .secondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
@@ -459,6 +459,39 @@ struct InsightsView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.25), value: viewModel.includeHousing)
+    }
+
+    // MARK: - Investment Toggle Pill
+
+    private var investmentTogglePill: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.includeInvestment.toggle()
+            }
+        } label: {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(viewModel.includeInvestment ? .white : .secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(
+                        viewModel.includeInvestment
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color(hue: 0.36, saturation: 0.55, brightness: 0.60),
+                                         Color(hue: 0.36, saturation: 0.55, brightness: 0.60).opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                          )
+                        : AnyShapeStyle(Color(.tertiarySystemFill))
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.includeInvestment)
     }
 }
 

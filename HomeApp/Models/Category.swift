@@ -18,6 +18,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
     case medical = "Medical"
     case transportation = "Transportation"
     case personalImprovement = "Personal Improvement"
+    case investment = "Investment"
     case housing = "Housing"
     case homeImprovement = "Home Improvement"
     case utilities = "Utilities"
@@ -37,7 +38,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
     var isExpense: Bool {
         switch self {
         case .groceries, .dineOut, .shopping, .pet, .car, .entertainment,
-             .medical, .transportation, .personalImprovement,
+             .medical, .transportation, .personalImprovement, .investment,
              .housing, .homeImprovement, .utilities, .gift,
              .travel, .miscellaneous:
             return true
@@ -74,6 +75,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .medical: return "cross.case.fill"
         case .transportation: return "bus.fill"
         case .personalImprovement: return "book.fill"
+        case .investment: return "chart.line.uptrend.xyaxis"
         case .housing: return "house.fill"
         case .homeImprovement: return "hammer.fill"
         case .utilities: return "bolt.fill"
@@ -99,6 +101,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .medical: return .blue
         case .transportation: return .cyan
         case .personalImprovement: return .indigo
+        case .investment: return Color(hue: 0.41, saturation: 0.75, brightness: 0.75)
         case .housing: return .brown
         case .homeImprovement: return .yellow
         case .utilities: return .teal
@@ -124,6 +127,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .medical: return "🏥"
         case .transportation: return "🚌"
         case .personalImprovement: return "📚"
+        case .investment: return "📈"
         case .housing: return "🏠"
         case .homeImprovement: return "🔨"
         case .utilities: return "⚡"

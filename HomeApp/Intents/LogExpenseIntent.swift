@@ -111,6 +111,7 @@ enum CategoryEntity: String, AppEnum {
     case medical = "Medical"
     case transportation = "Transportation"
     case personalImprovement = "Personal Improvement"
+    case investment = "Investment"
     case housing = "Housing"
     case homeImprovement = "Home Improvement"
     case utilities = "Utilities"
@@ -129,6 +130,7 @@ enum CategoryEntity: String, AppEnum {
         .medical: "🏥  Medical",
         .transportation: "🚌  Transportation",
         .personalImprovement: "📚  Personal Improvement",
+        .investment: "📈  Investment",
         .housing: "🏠  Housing",
         .homeImprovement: "🔨  Home Improvement",
         .utilities: "⚡  Utilities",
@@ -152,6 +154,7 @@ enum CategoryEntity: String, AppEnum {
         case .medical: return .medical
         case .transportation: return .transportation
         case .personalImprovement: return .personalImprovement
+        case .investment: return .investment
         case .housing: return .housing
         case .homeImprovement: return .homeImprovement
         case .utilities: return .utilities
