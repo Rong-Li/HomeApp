@@ -24,9 +24,11 @@ class InsightsViewModel: ObservableObject {
     // MARK: - Category Breakdown State
     
     @Published var breakdownResponse: CategoryBreakdownResponse?
-    @Published var selectedBreakdownPeriod: BreakdownPeriod = .lastMonth
+    @Published var selectedBreakdownPeriod: BreakdownPeriod = .currentMonth
+    @Published private(set) var selectedBreakdownMonth: String?
     @Published var isBreakdownLoading = false
     @Published var breakdownError: String?
+    @Published var monthlyBreakdownError: String?
     
     // Housing filter (default: exclude housing)
     @Published var includeHousing: Bool = false
@@ -34,7 +36,7 @@ class InsightsViewModel: ObservableObject {
     @Published var includeInvestment: Bool = false
     
     enum BreakdownPeriod: String, CaseIterable, Identifiable {
-        case lastMonth = "Last Month"
+        case currentMonth = "Current Month"
         case currentYear = "This Year"
         case lastYear = "Last Year"
         
@@ -42,14 +44,46 @@ class InsightsViewModel: ObservableObject {
     }
     
     // MARK: - Computed Properties
+
+    var availableBreakdownMonths: [String] {
+        breakdownResponse?.currentYearMonths?.map(\.month).sorted(by: >) ?? []
+    }
+
+    var selectedBreakdownError: String? {
+        if let breakdownError { return breakdownError }
+        return selectedBreakdownMonth != nil || selectedBreakdownPeriod == .currentMonth ? monthlyBreakdownError : nil
+    }
+
+    var isMonthlyBreakdownUnavailable: Bool {
+        guard let breakdown = breakdownResponse else { return false }
+        if let month = selectedBreakdownMonth {
+            return breakdown.currentYearMonths?.contains(where: { $0.month == month }) != true
+        }
+        return selectedBreakdownPeriod == .currentMonth && breakdown.currentMonth == nil
+    }
+
+    func selectBreakdownMonth(_ month: String?) {
+        selectedBreakdownMonth = month
+        if month == nil {
+            selectedBreakdownPeriod = .currentMonth
+        }
+    }
+
+    func selectBreakdownPeriod(_ period: BreakdownPeriod) {
+        selectedBreakdownMonth = nil
+        selectedBreakdownPeriod = period
+    }
     
     var availableCategories: [String] {
-        guard let trend = trendResponse else { return [] }
-        // Collect unique categories from all trend data
-        var cats = Set<String>()
+        guard trendResponse != nil else { return [] }
+        // Spending breakdowns omit earnings, so keep Salary available explicitly.
+        var cats: Set<String> = [Category.salary.rawValue]
         // We derive categories from the breakdown response if available
         if let breakdown = breakdownResponse {
-            if let lm = breakdown.lastMonth {
+            if let lastMonth = breakdown.lastMonth {
+                cats.formUnion(lastMonth.netByCategory.keys)
+            }
+            if let lm = breakdown.currentMonth {
                 cats.formUnion(lm.netByCategory.keys)
             }
             if let cy = breakdown.currentYear {
@@ -62,6 +96,7 @@ class InsightsViewModel: ObservableObject {
     /// Current month net expense adjusted for housing and investment toggles
     var adjustedCurrentMonthExpense: Double? {
         guard let current = trendResponse?.currentMonth else { return nil }
+        if isSelectedCategoryExcluded { return 0 }
         var expense = current.netExpense
         if selectedCategory == nil {
             if !includeHousing {
@@ -80,6 +115,9 @@ class InsightsViewModel: ObservableObject {
         let allEntries = trend.trend + [
             TrendMonthEntry(month: trend.currentMonth.month, netExpense: trend.currentMonth.netExpense)
         ]
+        if isSelectedCategoryExcluded {
+            return allEntries.map { TrendMonthEntry(month: $0.month, netExpense: 0) }
+        }
         guard selectedCategory == nil else { return allEntries }
 
         // Build subtraction maps for excluded large-amount categories
@@ -107,22 +145,32 @@ class InsightsViewModel: ObservableObject {
             TrendMonthEntry(month: entry.month, netExpense: entry.netExpense - (subtractionByMonth[entry.month] ?? 0))
         }
     }
+
+    private var isSelectedCategoryExcluded: Bool {
+        (selectedCategory == Category.housing.rawValue && !includeHousing) ||
+        (selectedCategory == Category.investment.rawValue && !includeInvestment)
+    }
     
     var currentBreakdownData: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])? {
         guard let breakdown = breakdownResponse else { return nil }
         
         let raw: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])?
         
-        switch selectedBreakdownPeriod {
-        case .lastMonth:
-            guard let data = breakdown.lastMonth else { return nil }
+        if let month = selectedBreakdownMonth {
+            guard let data = breakdown.currentYearMonths?.first(where: { $0.month == month }) else { return nil }
             raw = (data.netExpense, data.netByCategory, data.countByCategory)
-        case .currentYear:
-            guard let data = breakdown.currentYear else { return nil }
-            raw = (data.netExpense, data.netByCategory, data.countByCategory)
-        case .lastYear:
-            guard let data = breakdown.lastYear else { return nil }
-            raw = (data.netExpense, data.netByCategory, data.countByCategory)
+        } else {
+            switch selectedBreakdownPeriod {
+            case .currentMonth:
+                guard let data = breakdown.currentMonth else { return nil }
+                raw = (data.netExpense, data.netByCategory, data.countByCategory)
+            case .currentYear:
+                guard let data = breakdown.currentYear else { return nil }
+                raw = (data.netExpense, data.netByCategory, data.countByCategory)
+            case .lastYear:
+                guard let data = breakdown.lastYear else { return nil }
+                raw = (data.netExpense, data.netByCategory, data.countByCategory)
+            }
         }
         
         guard var result = raw else { return nil }
@@ -148,10 +196,13 @@ class InsightsViewModel: ObservableObject {
     
     var breakdownLabel: String {
         guard let breakdown = breakdownResponse else { return "" }
+        if let month = selectedBreakdownMonth {
+            return month
+        }
         
         switch selectedBreakdownPeriod {
-        case .lastMonth:
-            return breakdown.lastMonth?.month ?? ""
+        case .currentMonth:
+            return breakdown.currentMonth?.month ?? ""
         case .currentYear:
             return breakdown.currentYear?.year ?? ""
         case .lastYear:
@@ -189,12 +240,29 @@ class InsightsViewModel: ObservableObject {
         isTrendLoading = false
     }
     
-    func loadBreakdown() async {
+    func loadBreakdown(asOf date: Date = Date()) async {
         isBreakdownLoading = true
         breakdownError = nil
+        monthlyBreakdownError = nil
         
         do {
-            breakdownResponse = try await APIService.shared.fetchCategoryBreakdown()
+            var response = try await APIService.shared.fetchCategoryBreakdown()
+            if response.currentMonth == nil || response.currentYearMonths?.isEmpty != false {
+                // Older API deployments do not have monthly report snapshots yet.
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+                let startDate = calendar.dateInterval(of: .year, for: date)!.start
+                do {
+                    let transactions = try await APIService.shared.fetchTransactions(startDate: startDate, endDate: date)
+                    response = response.withMonthlySnapshots(from: transactions, through: date)
+                } catch {
+                    monthlyBreakdownError = "Failed to load monthly spending. Try again."
+                }
+            }
+            breakdownResponse = response
+            if let month = selectedBreakdownMonth, !availableBreakdownMonths.contains(month) {
+                selectBreakdownMonth(nil)
+            }
         } catch {
             breakdownError = "Failed to load category breakdown"
             #if DEBUG

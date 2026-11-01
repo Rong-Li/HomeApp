@@ -9,10 +9,15 @@ import SwiftUI
 import Charts
 
 struct InsightsView: View {
-    @StateObject private var viewModel = InsightsViewModel()
+    @StateObject private var viewModel: InsightsViewModel
     @State private var selectedBarMonth: String?
     @State private var selectedPieCategory: String?
     @State private var selectedPieAngle: Double?
+
+    @MainActor
+    init(viewModel: InsightsViewModel? = nil) {
+        _viewModel = StateObject(wrappedValue: viewModel ?? InsightsViewModel())
+    }
     
     var body: some View {
         NavigationStack {
@@ -89,7 +94,7 @@ struct InsightsView: View {
             HStack {
                 // Time range picker
                 HStack(spacing: 4) {
-                    ForEach([6, 12, 18, 24], id: \.self) { months in
+                    ForEach([6, 12, 24], id: \.self) { months in
                         Button("\(months)M") {
                             Task { await viewModel.onMonthsChanged(months) }
                         }
@@ -183,7 +188,7 @@ struct InsightsView: View {
                     if let v = value.as(Double.self) {
                         Text(compactCurrency(v))
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color(.secondaryLabel))
                     }
                 }
             }
@@ -194,6 +199,7 @@ struct InsightsView: View {
                     if let v = value.as(String.self) {
                         Text(v)
                             .font(.caption2)
+                            .foregroundStyle(Color(.secondaryLabel))
                     }
                 }
             }
@@ -204,32 +210,89 @@ struct InsightsView: View {
     
     private var categoryBreakdownSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Spending by Category")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+            HStack {
+                Text("Spending by Category")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                Spacer(minLength: 8)
+
+                Menu {
+                    ForEach(viewModel.availableBreakdownMonths, id: \.self) { month in
+                        Button {
+                            viewModel.selectBreakdownMonth(month)
+                        } label: {
+                            if viewModel.selectedBreakdownMonth == month {
+                                Label(monthDisplayName(month), systemImage: "checkmark")
+                            } else {
+                                Text(monthDisplayName(month))
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(viewModel.selectedBreakdownMonth.map(monthDisplayName) ?? "Month")
+                        Image(systemName: "chevron.down")
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(.systemGray6))
+                    .clipShape(Capsule())
+                }
+                .menuOrder(.fixed)
+                .disabled(viewModel.availableBreakdownMonths.isEmpty)
+                .accessibilityLabel("Breakdown month")
+                .accessibilityValue(viewModel.selectedBreakdownMonth.map(monthDisplayName) ?? "None")
+            }
             
             // Period picker
-            Picker("Period", selection: $viewModel.selectedBreakdownPeriod) {
+            Picker("Period", selection: Binding<InsightsViewModel.BreakdownPeriod?>(
+                get: { viewModel.selectedBreakdownMonth == nil ? viewModel.selectedBreakdownPeriod : nil },
+                set: { if let period = $0 { viewModel.selectBreakdownPeriod(period) } }
+            )) {
                 ForEach(InsightsViewModel.BreakdownPeriod.allCases) { period in
-                    Text(period.rawValue).tag(period)
+                    Text(period.rawValue).tag(Optional(period))
                 }
             }
             .pickerStyle(.segmented)
             
-            if let data = viewModel.currentBreakdownData {
-                categoryDonutChart(data: data)
-                
-                Divider()
-                    .padding(.vertical, 2)
-                
-                categoryLegend(data: data)
-            } else if viewModel.isBreakdownLoading {
+            if !viewModel.breakdownLabel.isEmpty {
+                Text(viewModel.breakdownLabel.contains("-")
+                     ? monthDisplayName(viewModel.breakdownLabel) + " " + String(viewModel.breakdownLabel.prefix(4))
+                     : viewModel.breakdownLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if viewModel.isBreakdownLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, minHeight: 200)
-            } else if let error = viewModel.breakdownError {
+            } else if let error = viewModel.selectedBreakdownError {
                 ContentUnavailableView(error, systemImage: "exclamationmark.triangle")
+            } else if viewModel.isMonthlyBreakdownUnavailable {
+                ContentUnavailableView("Monthly breakdown unavailable", systemImage: "chart.pie",
+                                       description: Text("Try again later or choose a yearly period."))
+            } else if let data = viewModel.currentBreakdownData {
+                if data.netByCategory.values.contains(where: { $0 > 0 }) {
+                    categoryDonutChart(data: data)
+                } else {
+                    ContentUnavailableView("No spending to display", systemImage: "chart.pie",
+                                           description: Text("No spending for this period with the current filters."))
+                        .frame(minHeight: 200)
+                    if data.netExpense != 0 {
+                        Text("Net spending: \(formatCurrency(data.netExpense))")
+                            .font(.subheadline)
+                    }
+                }
+
+                if !data.netByCategory.isEmpty {
+                    Divider()
+                        .padding(.vertical, 2)
+                    categoryLegend(data: data)
+                }
             } else {
                 ContentUnavailableView("No data available", systemImage: "chart.pie")
                     .frame(minHeight: 200)
@@ -239,11 +302,14 @@ struct InsightsView: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+        .onChange(of: viewModel.breakdownLabel) { _, _ in resetPieSelection() }
+        .onChange(of: viewModel.currentBreakdownData?.netByCategory) { _, _ in resetPieSelection() }
     }
     
     private func categoryDonutChart(data: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])) -> some View {
-        let sorted = data.netByCategory.sorted { $0.value > $1.value }
+        let sorted = data.netByCategory.filter { $0.value > 0 }.sorted { $0.value > $1.value }
         let total = data.netExpense
+        let sliceTotal = sorted.reduce(0) { $0 + $1.value }
         
         return Chart(sorted, id: \.key) { item in
             SectorMark(
@@ -254,8 +320,8 @@ struct InsightsView: View {
             .foregroundStyle(colorForCategory(item.key))
             .opacity(selectedPieCategory == nil || selectedPieCategory == item.key ? 1.0 : 0.4)
             .annotation(position: .overlay) {
-                if total > 0 && item.value / total > 0.08 {
-                    Text(String(format: "%.0f%%", (item.value / total) * 100))
+                if sliceTotal > 0 && item.value / sliceTotal > 0.08 {
+                    Text(String(format: "%.0f%%", (item.value / sliceTotal) * 100))
                         .font(.caption2.bold())
                         .foregroundStyle(.white)
                 }
@@ -298,7 +364,7 @@ struct InsightsView: View {
     
     private func categoryLegend(data: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])) -> some View {
         let sorted = data.netByCategory.sorted { $0.value > $1.value }
-        let total = data.netExpense
+        let total = data.netByCategory.values.filter { $0 > 0 }.reduce(0, +)
         
         return VStack(spacing: 6) {
             ForEach(sorted, id: \.key) { item in
@@ -322,7 +388,7 @@ struct InsightsView: View {
                             .font(.subheadline.weight(.semibold))
                         
                         HStack(spacing: 4) {
-                            if total > 0 {
+                            if total > 0 && item.value > 0 {
                                 Text(String(format: "%.1f%%", (item.value / total) * 100))
                             }
                             if let count = data.countByCategory[item.key] {
@@ -342,6 +408,11 @@ struct InsightsView: View {
     }
     
     // MARK: - Helpers
+
+    private func resetPieSelection() {
+        selectedPieAngle = nil
+        selectedPieCategory = nil
+    }
     
     private func findCategory(for angle: Double, in sorted: [(key: String, value: Double)]) -> String? {
         var cumulative = 0.0
@@ -363,8 +434,8 @@ struct InsightsView: View {
     }
     
     private func compactCurrency(_ value: Double) -> String {
-        if value >= 1000 {
-            return "$\(Int(value / 1000))k"
+        if abs(value) >= 1000 {
+            return "$" + (value / 1000).formatted(.number.precision(.fractionLength(0...1))) + "k"
         }
         return "$\(Int(value))"
     }
@@ -459,6 +530,8 @@ struct InsightsView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.25), value: viewModel.includeHousing)
+        .accessibilityLabel("Include housing")
+        .accessibilityValue(viewModel.includeHousing ? "On" : "Off")
     }
 
     // MARK: - Investment Toggle Pill
@@ -492,6 +565,8 @@ struct InsightsView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.25), value: viewModel.includeInvestment)
+        .accessibilityLabel("Include investment")
+        .accessibilityValue(viewModel.includeInvestment ? "On" : "Off")
     }
 }
 
