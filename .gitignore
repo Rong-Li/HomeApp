@@ -22,6 +22,7 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 *.xcscmblueprint
+*.xcresult/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
 # Swift Package Manager
@@ -53,3 +54,6 @@ HomeApp/Config/Secrets.swift
 
 # Crash logs
 *.crash
+
+# Local tooling caches
+.ruff_cache/
