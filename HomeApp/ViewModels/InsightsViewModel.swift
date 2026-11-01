@@ -76,8 +76,8 @@ class InsightsViewModel: ObservableObject {
     
     var availableCategories: [String] {
         guard trendResponse != nil else { return [] }
-        // Collect unique categories from all trend data
-        var cats = Set<String>()
+        // Spending breakdowns omit earnings, so keep Salary available explicitly.
+        var cats: Set<String> = [Category.salary.rawValue]
         // We derive categories from the breakdown response if available
         if let breakdown = breakdownResponse {
             if let lastMonth = breakdown.lastMonth {
