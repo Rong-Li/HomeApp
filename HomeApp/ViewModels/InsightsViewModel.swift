@@ -29,6 +29,10 @@ class InsightsViewModel: ObservableObject {
     @Published var isBreakdownLoading = false
     @Published var breakdownError: String?
     @Published var monthlyBreakdownError: String?
+    @Published private(set) var isMonthLoading = false
+    @Published private var selectedMonthSnapshot: CategorySnapshotMonth?
+    private var monthCache: [String: CategorySnapshotMonth] = [:]
+    private var breakdownDate = Date()
     
     // Housing filter (default: exclude housing)
     @Published var includeHousing: Bool = false
@@ -46,24 +50,41 @@ class InsightsViewModel: ObservableObject {
     // MARK: - Computed Properties
 
     var availableBreakdownMonths: [String] {
-        breakdownResponse?.currentYearMonths?.map(\.month).sorted(by: >) ?? []
+        if let months = breakdownResponse?.currentYearMonths, !months.isEmpty {
+            return months.map(\.month).sorted(by: >)
+        }
+        let parts = currentMonthKey.split(separator: "-")
+        guard parts.count == 2, let month = Int(parts[1]), (1...12).contains(month) else { return [] }
+        return (1...month).reversed().map { String(format: "%@-%02d", String(parts[0]), $0) }
+    }
+
+    private var currentMonthKey: String {
+        if let month = breakdownResponse?.currentMonth?.month ?? trendResponse?.currentMonth.month { return month }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return String(format: "%04d-%02d", calendar.component(.year, from: breakdownDate), calendar.component(.month, from: breakdownDate))
     }
 
     var selectedBreakdownError: String? {
-        if let breakdownError { return breakdownError }
-        return selectedBreakdownMonth != nil || selectedBreakdownPeriod == .currentMonth ? monthlyBreakdownError : nil
+        selectedBreakdownMonth != nil ? monthlyBreakdownError : breakdownError
     }
 
     var isMonthlyBreakdownUnavailable: Bool {
         guard let breakdown = breakdownResponse else { return false }
         if let month = selectedBreakdownMonth {
-            return breakdown.currentYearMonths?.contains(where: { $0.month == month }) != true
+            return selectedMonthSnapshot?.month != month && !isMonthLoading
         }
-        return selectedBreakdownPeriod == .currentMonth && breakdown.currentMonth == nil
+        return selectedBreakdownPeriod == .currentMonth && monthCache[currentMonthKey] == nil &&
+            breakdown.currentMonth == nil && breakdown.currentYearMonths?.contains(where: { $0.month == currentMonthKey }) != true
     }
 
     func selectBreakdownMonth(_ month: String?) {
         selectedBreakdownMonth = month
+        monthlyBreakdownError = nil
+        isMonthLoading = false
+        selectedMonthSnapshot = month.flatMap { key in
+            monthCache[key] ?? breakdownResponse?.currentYearMonths?.first(where: { $0.month == key })
+        }
         if month == nil {
             selectedBreakdownPeriod = .currentMonth
         }
@@ -157,12 +178,13 @@ class InsightsViewModel: ObservableObject {
         let raw: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])?
         
         if let month = selectedBreakdownMonth {
-            guard let data = breakdown.currentYearMonths?.first(where: { $0.month == month }) else { return nil }
+            guard let data = selectedMonthSnapshot, data.month == month else { return nil }
             raw = (data.netExpense, data.netByCategory, data.countByCategory)
         } else {
             switch selectedBreakdownPeriod {
             case .currentMonth:
-                guard let data = breakdown.currentMonth else { return nil }
+                guard let data = monthCache[currentMonthKey] ?? breakdown.currentMonth ??
+                    breakdown.currentYearMonths?.first(where: { $0.month == currentMonthKey }) else { return nil }
                 raw = (data.netExpense, data.netByCategory, data.countByCategory)
             case .currentYear:
                 guard let data = breakdown.currentYear else { return nil }
@@ -202,7 +224,7 @@ class InsightsViewModel: ObservableObject {
         
         switch selectedBreakdownPeriod {
         case .currentMonth:
-            return breakdown.currentMonth?.month ?? ""
+            return currentMonthKey
         case .currentYear:
             return breakdown.currentYear?.year ?? ""
         case .lastYear:
@@ -212,73 +234,102 @@ class InsightsViewModel: ObservableObject {
     
     // MARK: - Data Loading
     
-    func loadAllData() async {
-        await withTaskGroup(of: Void.self) { group in
+    @discardableResult
+    func loadAllData() async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
             group.addTask { await self.loadTrend() }
             group.addTask { await self.loadHousingTrend() }
             group.addTask { await self.loadInvestmentTrend() }
             group.addTask { await self.loadBreakdown() }
+            return await group.reduce(true) { $0 && $1 }
         }
     }
     
-    func loadTrend() async {
+    @discardableResult
+    func loadTrend() async -> Bool {
         isTrendLoading = true
         trendError = nil
+        defer { isTrendLoading = false }
         
         do {
             trendResponse = try await APIService.shared.fetchSpendingTrend(
                 months: selectedMonths,
                 category: selectedCategory
             )
+            return true
         } catch {
             trendError = "Failed to load spending trend"
             #if DEBUG
             print("[InsightsVM] Trend error: \(error)")
             #endif
+            return false
         }
-        
-        isTrendLoading = false
     }
     
-    func loadBreakdown(asOf date: Date = Date()) async {
+    @discardableResult
+    func loadBreakdown(asOf date: Date = Date()) async -> Bool {
         isBreakdownLoading = true
         breakdownError = nil
-        monthlyBreakdownError = nil
+        breakdownDate = date
+        defer { isBreakdownLoading = false }
         
         do {
-            var response = try await APIService.shared.fetchCategoryBreakdown()
-            if response.currentMonth == nil || response.currentYearMonths?.isEmpty != false {
-                // Older API deployments do not have monthly report snapshots yet.
-                var calendar = Calendar(identifier: .gregorian)
-                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-                let startDate = calendar.dateInterval(of: .year, for: date)!.start
-                do {
-                    let transactions = try await APIService.shared.fetchTransactions(startDate: startDate, endDate: date)
-                    response = response.withMonthlySnapshots(from: transactions, through: date)
-                } catch {
-                    monthlyBreakdownError = "Failed to load monthly spending. Try again."
-                }
-            }
-            breakdownResponse = response
+            breakdownResponse = try await APIService.shared.fetchCategoryBreakdown()
             if let month = selectedBreakdownMonth, !availableBreakdownMonths.contains(month) {
                 selectBreakdownMonth(nil)
             }
+            return true
         } catch {
             breakdownError = "Failed to load category breakdown"
             #if DEBUG
             print("[InsightsVM] Breakdown error: \(error)")
             #endif
+            return false
         }
-        
-        isBreakdownLoading = false
+    }
+
+    @discardableResult
+    func loadSelectedMonth(force: Bool = false) async -> Bool {
+        guard let month = selectedBreakdownMonth else { return true }
+        if !force, let snapshot = monthCache[month] ?? breakdownResponse?.currentYearMonths?.first(where: { $0.month == month }) {
+            selectedMonthSnapshot = snapshot
+            return true
+        }
+        let parts = month.split(separator: "-")
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        guard availableBreakdownMonths.contains(month), parts.count == 2,
+              let year = Int(parts[0]), let number = Int(parts[1]),
+              let start = calendar.date(from: DateComponents(year: year, month: number, day: 1)),
+              let next = calendar.date(byAdding: .month, value: 1, to: start) else { return false }
+        isMonthLoading = true
+        monthlyBreakdownError = nil
+        defer { if selectedBreakdownMonth == month { isMonthLoading = false } }
+        do {
+            let transactions = try await APIService.shared.fetchTransactions(startDate: start, endDate: next.addingTimeInterval(-1))
+            guard !Task.isCancelled else { return false }
+            let response = breakdownResponse ?? CategoryBreakdownResponse(lastMonth: nil, currentYear: nil, lastYear: nil,
+                                                                          currentMonth: nil, currentYearMonths: nil)
+            let snapshot = response.withMonthlySnapshots(from: transactions, through: start).currentMonth
+            guard let snapshot else { return false }
+            if breakdownResponse == nil { breakdownResponse = response }
+            monthCache[month] = snapshot
+            if selectedBreakdownMonth == month { selectedMonthSnapshot = snapshot }
+            return true
+        } catch {
+            if !Task.isCancelled && selectedBreakdownMonth == month {
+                monthlyBreakdownError = "Failed to load monthly spending. Try again."
+            }
+            return false
+        }
     }
     
     func onMonthsChanged(_ months: Int) async {
         selectedMonths = months
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.loadTrend() }
-            group.addTask { await self.loadHousingTrend() }
-            group.addTask { await self.loadInvestmentTrend() }
+            group.addTask { _ = await self.loadTrend() }
+            group.addTask { _ = await self.loadHousingTrend() }
+            group.addTask { _ = await self.loadInvestmentTrend() }
         }
     }
     
@@ -287,29 +338,35 @@ class InsightsViewModel: ObservableObject {
         await loadTrend()
     }
     
-    func loadHousingTrend() async {
+    @discardableResult
+    func loadHousingTrend() async -> Bool {
         do {
             housingTrendResponse = try await APIService.shared.fetchSpendingTrend(
                 months: selectedMonths,
                 category: Category.housing.rawValue
             )
+            return true
         } catch {
             #if DEBUG
             print("[InsightsVM] Housing trend error: \(error)")
             #endif
+            return false
         }
     }
 
-    func loadInvestmentTrend() async {
+    @discardableResult
+    func loadInvestmentTrend() async -> Bool {
         do {
             investmentTrendResponse = try await APIService.shared.fetchSpendingTrend(
                 months: selectedMonths,
                 category: Category.investment.rawValue
             )
+            return true
         } catch {
             #if DEBUG
             print("[InsightsVM] Investment trend error: \(error)")
             #endif
+            return false
         }
     }
 }

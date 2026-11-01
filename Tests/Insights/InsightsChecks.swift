@@ -116,7 +116,7 @@ struct InsightsChecks {
         model.selectBreakdownPeriod(.currentMonth)
         check(model.currentBreakdownData == nil)
         check(model.isMonthlyBreakdownUnavailable)
-        check(model.availableBreakdownMonths.isEmpty)
+        check(model.availableBreakdownMonths == ["2026-03", "2026-02", "2026-01"])
 
         // An older server must still provide a selectable month menu after loading.
         // The existing expense endpoint supplies monthly data during API rollout.
@@ -136,13 +136,23 @@ struct InsightsChecks {
         let compatibilityModel = InsightsViewModel()
         await compatibilityModel.loadBreakdown(asOf: referenceDate)
         check(compatibilityModel.availableBreakdownMonths.contains("2026-02"), "Legacy API must not leave the month menu disabled")
+        let initialMonthRange = await APIService.shared.transactionRange
+        check(initialMonthRange == nil, "Opening Insights must not fetch transaction history")
         compatibilityModel.selectBreakdownMonth("2026-02")
+        await compatibilityModel.loadSelectedMonth()
         check(compatibilityModel.currentBreakdownData?.netExpense == 70, "Legacy month selection must display that month's spending")
         check(compatibilityModel.breakdownError == nil)
         check(compatibilityModel.availableBreakdownMonths == ["2026-03", "2026-02", "2026-01"])
+        compatibilityModel.selectBreakdownMonth("2026-02")
+        await compatibilityModel.loadSelectedMonth()
+        let repeatedMonthRequests = await APIService.shared.transactionRequestCount
+        check(repeatedMonthRequests == 1, "Revisiting a selected month must use its cached data")
         compatibilityModel.selectBreakdownMonth("2026-01")
+        await compatibilityModel.loadSelectedMonth()
         check(compatibilityModel.currentBreakdownData?.netExpense == 0)
         check(compatibilityModel.currentBreakdownData?.countByCategory.isEmpty == true)
+        compatibilityModel.selectBreakdownMonth("2026-03")
+        await compatibilityModel.loadSelectedMonth()
         compatibilityModel.selectBreakdownPeriod(.currentMonth)
         for (housing, investment, total) in [(false, false, 100.0), (false, true, 550.0), (true, false, 1100.0), (true, true, 1550.0)] {
             compatibilityModel.includeHousing = housing
@@ -152,8 +162,8 @@ struct InsightsChecks {
         check(compatibilityModel.currentBreakdownData?.countByCategory["Investment"] == 2)
         check(compatibilityModel.currentBreakdownData?.netByCategory["Salary"] == nil)
         let range = await APIService.shared.transactionRange
-        check(range?.start == ISO8601DateFormatter().date(from: "2026-01-01T00:00:00Z"))
-        check(range?.end == referenceDate)
+        check(range?.start == ISO8601DateFormatter().date(from: "2026-03-01T00:00:00Z"))
+        check(range?.end == ISO8601DateFormatter().date(from: "2026-03-31T23:59:59Z"))
 
         // A new server already has snapshots: don't fetch transactions unnecessarily.
         let newResponse = try JSONDecoder().decode(CategoryBreakdownResponse.self, from: fixture)
@@ -169,11 +179,16 @@ struct InsightsChecks {
         let emptyModel = InsightsViewModel()
         await emptyModel.loadBreakdown(asOf: referenceDate)
         check(emptyModel.availableBreakdownMonths == ["2026-03", "2026-02", "2026-01"])
+        check(emptyModel.currentBreakdownData == nil, "An unselected month must not trigger an expense fetch")
+        emptyModel.selectBreakdownMonth("2026-03")
+        await emptyModel.loadSelectedMonth()
         check(emptyModel.currentBreakdownData?.netByCategory.isEmpty == true)
 
         await APIService.shared.configure(breakdown: legacyResponse, transactions: [], failTransactions: true)
         let failedModel = InsightsViewModel()
         await failedModel.loadBreakdown(asOf: referenceDate)
+        failedModel.selectBreakdownMonth("2026-03")
+        await failedModel.loadSelectedMonth()
         check(failedModel.selectedBreakdownError != nil, "A failed fallback must report an error rather than fabricate zero spending")
         check(!failedModel.isBreakdownLoading)
 
@@ -185,6 +200,8 @@ struct InsightsChecks {
         await APIService.shared.configure(breakdown: usableLegacy, transactions: [], failTransactions: true)
         let yearlyModel = InsightsViewModel()
         await yearlyModel.loadBreakdown(asOf: referenceDate)
+        yearlyModel.selectBreakdownMonth("2026-03")
+        await yearlyModel.loadSelectedMonth()
         yearlyModel.selectBreakdownPeriod(.currentYear)
         check(yearlyModel.currentBreakdownData?.netExpense == 70, "Monthly fetch failure must preserve valid yearly snapshots")
         check(yearlyModel.selectedBreakdownError == nil)
@@ -198,11 +215,12 @@ struct InsightsChecks {
         await APIService.shared.configure(breakdown: partial, transactions: [changedTransaction])
         let partialModel = InsightsViewModel()
         await partialModel.loadBreakdown(asOf: referenceDate)
-        let partialCurrentTotal = partialModel.currentBreakdownData?.netExpense
+        check(partialModel.currentBreakdownData?.netExpense == 100)
         partialModel.selectBreakdownMonth("2026-03")
-        check(partialModel.currentBreakdownData?.netExpense == partialCurrentTotal,
-              "Current Month and selecting the same month must use the same fallback snapshot")
-        check(partialCurrentTotal == 150)
+        await partialModel.loadSelectedMonth()
+        check(partialModel.currentBreakdownData?.netExpense == 150)
+        partialModel.selectBreakdownPeriod(.currentMonth)
+        check(partialModel.currentBreakdownData?.netExpense == 150)
 
         let missingCurrent = CategoryBreakdownResponse(
             lastMonth: nil, currentYear: nil, lastYear: nil,
@@ -211,9 +229,10 @@ struct InsightsChecks {
         await APIService.shared.configure(breakdown: missingCurrent, transactions: [changedTransaction])
         let missingCurrentModel = InsightsViewModel()
         await missingCurrentModel.loadBreakdown(asOf: referenceDate)
-        check(missingCurrentModel.currentBreakdownData?.netExpense == 150)
+        check(missingCurrentModel.currentBreakdownData?.netExpense == 100)
         missingCurrentModel.selectBreakdownMonth("2026-03")
-        check(missingCurrentModel.currentBreakdownData?.netExpense == 150)
+        await missingCurrentModel.loadSelectedMonth()
+        check(missingCurrentModel.currentBreakdownData?.netExpense == 100)
 
         // Keep refunds, exact cancellation, cents, and year boundaries faithful to reports.
         let januaryDate = ISO8601DateFormatter().date(from: "2027-01-05T12:00:00Z")!
@@ -232,7 +251,26 @@ struct InsightsChecks {
         check(januarySnapshot.currentMonth?.netByCategory == ["Investment": -50, "Housing": 10.25])
         check(januarySnapshot.currentMonth?.countByCategory["Groceries"] == 3)
 
+        // Failed auxiliary refreshes must not turn stale category data into a fresh tab load.
+        await APIService.shared.configure(breakdown: newResponse, transactions: [])
+        let refreshTrend = TrendResponse(
+            monthsRequested: 6, categoryFilter: nil,
+            currentMonth: CurrentMonthSummary(month: "2026-03", netExpense: 1550, daysRemaining: 21),
+            previousMonthEarning: 5000, trend: []
+        )
+        await APIService.shared.configureTrends(refreshTrend)
+        let refreshModel = InsightsViewModel()
+        let firstLoadSucceeded = await refreshModel.loadAllData()
+        check(firstLoadSucceeded)
+        await APIService.shared.configureTrends(refreshTrend, failing: ["Housing"])
+        let housingRefreshSucceeded = await refreshModel.loadAllData()
+        check(!housingRefreshSucceeded, "A failed Housing refresh must not be cached as a successful tab load")
+        check(refreshModel.housingTrendResponse != nil, "Keep last good data while a refresh fails")
+        await APIService.shared.configureTrends(refreshTrend, failing: ["Investment"])
+        let investmentRefreshSucceeded = await refreshModel.loadAllData()
+        check(!investmentRefreshSucceeded, "A failed Investment refresh must not be cached as a successful tab load")
+
         if failures > 0 { exit(1) }
-        print("Insights checks passed: category toggles, month selection, legacy API loading, partial/error responses, empty months, refunds, and year boundaries")
+        print("Insights checks passed: category toggles, month selection, on-demand month loading/cache, partial/error responses, empty months, refunds, and year boundaries")
     }
 }

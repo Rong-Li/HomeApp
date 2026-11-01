@@ -13,6 +13,7 @@ The Python AWS Lambda backend is in `../LambdaApps`; this repo is the iOS client
 | `HomeApp/ViewModels/` | Feature state, loading, filtering, and actions |
 | `HomeApp/Models/` | API types, enums, filters, and display helpers |
 | `HomeApp/Services/APIService.swift` | Shared actor for HTTP, authentication, and serialization |
+| `HomeApp/Services/TabDataLoader.swift` | Reuses recent tab loads and shares in-flight work |
 | `HomeApp/Services/APIError.swift` | Network errors |
 | `HomeApp/Services/NetworkMonitor.swift` | Connectivity state |
 | `HomeApp/Services/LocationService.swift` | Optional postal-code lookup |
@@ -53,6 +54,9 @@ discrepancies rather than treating those documents as the current API contract.
   must not prevent saving.
 - **Insights:** preserve housing/investment exclusions. Reports depend on backend
   aggregation; refreshing the client does not itself recompute reports.
+- **Tab loading:** reuse successful loads for 60 seconds; pull-to-refresh bypasses
+  that interval. Fetch transaction-based month details only after month selection,
+  limited to that month's date range. Do not fetch a full year on tab appearance.
 
 These describe current behavior to investigate when relevant, not a requirement
 to preserve defects or fix unrelated issues.
@@ -121,6 +125,7 @@ Run the offline Insights model/view-model regression checks on macOS:
 
 ```sh
 rtk bash Tests/Insights/run.sh
+rtk bash Tests/TabLoading/run.sh
 ```
 
 These compile the real models and view model with a test-only network boundary.

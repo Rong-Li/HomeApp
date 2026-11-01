@@ -12,7 +12,8 @@ fixtures; unconfigured report/trend loads fail immediately. Credentials are not 
 
 Checks cover both category toggles (including selected-category filters), trend
 and pie total parity, month/period transitions, missing months, January category
-availability, and loading older/partial API responses through the transaction
-fallback. Refunds, cents, empty years, and fallback failures are covered as well.
+availability, and older/partial API responses. Transaction-based monthly details
+load only after selection, use one month's bounds, and reuse cached results.
+Refunds, cents, empty months, request failures, and partial refresh failures are covered.
 Failures return a nonzero status.
 These are state/serialization checks; verify chart appearance in the simulator.
