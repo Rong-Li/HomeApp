@@ -18,6 +18,7 @@ struct TransactionsView: View {
     @State private var showCashSnippet = false
     @State private var balanceViewModel = BalanceViewModel()
     @State private var showBalanceSnippet = false
+    @State private var dataLoader = TabDataLoader()
     
     var body: some View {
         NavigationStack {
@@ -43,7 +44,7 @@ struct TransactionsView: View {
             }
             .navigationTitle("Transactions")
             .refreshable {
-                await viewModel.refresh()
+                await loadData(force: true)
             }
             .sheet(isPresented: $showExpenseLogger) {
                 ExpenseLoggerView {
@@ -70,13 +71,22 @@ struct TransactionsView: View {
             }
         }
         .task {
-            await viewModel.loadTransactions()
-            await scheduleViewModel.loadSchedules()
-            await cashViewModel.loadStatus()
-            await balanceViewModel.loadBalances()
+            await loadData()
         }
         .onChange(of: viewModel.selectedTimeRange) {
             Task { await viewModel.loadTransactions() }
+        }
+    }
+
+    private func loadData(force: Bool = false) async {
+        await dataLoader.loadIfNeeded(force: force) {
+            async let transactions: Void = viewModel.loadTransactions()
+            async let schedules: Void = scheduleViewModel.loadSchedules()
+            async let cash: Void = cashViewModel.loadStatus()
+            async let balances: Void = balanceViewModel.loadBalances()
+            _ = await (transactions, schedules, cash, balances)
+            return viewModel.error == nil && scheduleViewModel.error == nil &&
+                cashViewModel.error == nil && balanceViewModel.error == nil
         }
     }
     

@@ -13,6 +13,7 @@ struct InsightsView: View {
     @State private var selectedBarMonth: String?
     @State private var selectedPieCategory: String?
     @State private var selectedPieAngle: Double?
+    @State private var dataLoader = TabDataLoader()
 
     @MainActor
     init(viewModel: InsightsViewModel? = nil) {
@@ -31,12 +32,26 @@ struct InsightsView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Insights")
             .task {
-                await viewModel.loadAllData()
+                await loadData()
+            }
+            .refreshable {
+                await loadData(force: true)
             }
         }
     }
     
     // MARK: - Spending Summary Section
+
+    private func loadData(force: Bool = false) async {
+        await dataLoader.loadIfNeeded(force: force) {
+            let reportsLoaded = await viewModel.loadAllData()
+            if force, viewModel.selectedBreakdownMonth != nil {
+                let monthLoaded = await viewModel.loadSelectedMonth(force: true)
+                return reportsLoaded && monthLoaded
+            }
+            return reportsLoaded
+        }
+    }
     
     private var spendingSummarySection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -267,14 +282,14 @@ struct InsightsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if viewModel.isBreakdownLoading {
+            if viewModel.selectedBreakdownMonth != nil ? viewModel.isMonthLoading : viewModel.isBreakdownLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, minHeight: 200)
             } else if let error = viewModel.selectedBreakdownError {
                 ContentUnavailableView(error, systemImage: "exclamationmark.triangle")
             } else if viewModel.isMonthlyBreakdownUnavailable {
-                ContentUnavailableView("Monthly breakdown unavailable", systemImage: "chart.pie",
-                                       description: Text("Try again later or choose a yearly period."))
+                ContentUnavailableView("Choose a month", systemImage: "chart.pie",
+                                       description: Text("Select a month above to load its spending."))
             } else if let data = viewModel.currentBreakdownData {
                 if data.netByCategory.values.contains(where: { $0 > 0 }) {
                     categoryDonutChart(data: data)
@@ -304,6 +319,10 @@ struct InsightsView: View {
         .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
         .onChange(of: viewModel.breakdownLabel) { _, _ in resetPieSelection() }
         .onChange(of: viewModel.currentBreakdownData?.netByCategory) { _, _ in resetPieSelection() }
+        .task(id: viewModel.selectedBreakdownMonth) {
+            guard viewModel.selectedBreakdownMonth != nil else { return }
+            await viewModel.loadSelectedMonth()
+        }
     }
     
     private func categoryDonutChart(data: (netExpense: Double, netByCategory: [String: Double], countByCategory: [String: Int])) -> some View {

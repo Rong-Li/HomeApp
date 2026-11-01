@@ -21,11 +21,14 @@ snapshots. Do not silently show a different period. Do not deploy or access live
 financial services.
 
 Compatibility follow-up after the user reported a disabled Month menu: when an
-older or partial API response omits monthly snapshots, fetch current-year data
-through the existing expense endpoint and derive UTC monthly expense snapshots.
+older or partial API response omits monthly snapshots, keep the month menu available
+from the calendar. Fetch only the selected month's data after it is clicked,
+through the existing expense endpoint, and cache its UTC expense snapshot.
 Use Decimal debit-minus-credit sums and exclude earning categories. Both default
 Current Month and the matching menu month must use the same snapshot. Keep usable
 yearly reports available if the monthly fallback fails. Updated API responses
 continue to use report snapshots without an extra transaction request.
-During this fallback, monthly data is based on transactions while trend/yearly
+Do not fetch transaction history automatically when Insights appears. Report data
+still loads normally. Reuse recent tab loads for 60 seconds and share active loads;
+manual refresh bypasses freshness. During month loading, monthly data is based on transactions while trend/yearly
 views retain stored reports, so aggregation freshness may cause differences.
